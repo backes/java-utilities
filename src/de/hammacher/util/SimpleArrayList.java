@@ -1,17 +1,6 @@
-/*
- * @(#)ArrayList.java   1.56 06/04/21
- *
- * Copyright 2006 Sun Microsystems, Inc. All rights reserved.
- * SUN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- * THIS COPY IS HERE FOR NOT BEING INSTRUMENTED!
- *
- */
-
 package de.hammacher.util;
 
 import java.util.AbstractList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
@@ -72,8 +61,11 @@ public class SimpleArrayList<E> implements List<E> {
         this.elementData = c.toArray();
         this.size = this.elementData.length;
         // c.toArray might (incorrectly) not return Object[] (see 6260652)
-        if (this.elementData.getClass() != Object[].class)
-            this.elementData = Arrays.copyOf(this.elementData, this.size, Object[].class);
+        if (this.elementData.getClass() != Object[].class) {
+            final Object[] old = this.elementData;
+            this.elementData = new Object[this.size];
+            System.arraycopy(old, 0, this.elementData, 0, this.size);
+        }
     }
 
     /**
@@ -84,7 +76,9 @@ public class SimpleArrayList<E> implements List<E> {
         this.modCount++;
         final int oldCapacity = this.elementData.length;
         if (this.size < oldCapacity) {
-            this.elementData = Arrays.copyOf(this.elementData, this.size);
+            final Object[] old = this.elementData;
+            this.elementData = new Object[this.size];
+            System.arraycopy(old, 0, this.elementData, 0, this.size);
         }
     }
 
@@ -103,7 +97,9 @@ public class SimpleArrayList<E> implements List<E> {
             if (newCapacity < minCapacity)
                 newCapacity = minCapacity;
             // minCapacity is usually close to size, so this is a win:
-            this.elementData = Arrays.copyOf(this.elementData, newCapacity);
+            final Object[] old = this.elementData;
+            this.elementData = new Object[newCapacity];
+            System.arraycopy(old, 0, this.elementData, 0, oldCapacity);
         }
     }
 
@@ -187,7 +183,9 @@ public class SimpleArrayList<E> implements List<E> {
      * @return an array containing all of the elements in this list in proper sequence
      */
     public Object[] toArray() {
-        return Arrays.copyOf(this.elementData, this.size);
+        final Object[] a = new Object[this.size];
+        System.arraycopy(this.elementData, 0, a, 0, this.size);
+        return a;
     }
 
     /**
@@ -214,9 +212,13 @@ public class SimpleArrayList<E> implements List<E> {
      */
     @SuppressWarnings("unchecked")
     public <T> T[] toArray(final T[] a) {
-        if (a.length < this.size)
+        if (a.length < this.size) {
             // Make a new array of a's runtime type, but my contents:
-            return (T[]) Arrays.copyOf(this.elementData, this.size, a.getClass());
+            final T[] newA = (T[]) java.lang.reflect.Array.newInstance(a.getClass()
+                .getComponentType(), this.size);
+            System.arraycopy(this.elementData, 0, newA, 0, this.size);
+            return newA;
+        }
         System.arraycopy(this.elementData, 0, a, 0, this.size);
         if (a.length > this.size)
             a[this.size] = null;
