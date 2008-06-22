@@ -182,7 +182,7 @@ public class MultiplexedFileWriter {
                     value.close();
                 } catch (IOException e) {
                     synchronized (MultiplexedFileWriter.this) {
-                        exception = e;
+                        MultiplexedFileWriter.this.exception = e;
                     }
                 }
             }
@@ -218,6 +218,9 @@ public class MultiplexedFileWriter {
         if (maxDepth < 1)
             throw new IllegalArgumentException("maxDepth must be > 0");
 
+        // first, set the file size to 0
+        file.setLength(0);
+
         this.file = file;
         this.blockSize = blockSize;
         this.maxDepth = maxDepth;
@@ -241,11 +244,7 @@ public class MultiplexedFileWriter {
     }
 
     public synchronized MultiplexOutputStream newOutputStream() throws IOException {
-        if (this.exception != null) {
-            final IOException e = exception;
-            exception = null;
-            throw e;
-        }
+        checkException();
         if (this.closed)
             throw new IllegalStateException(getClass().getSimpleName() + " closed");
         final int streamNr = this.nextStreamNr++;
@@ -256,12 +255,8 @@ public class MultiplexedFileWriter {
         return newStream;
     }
 
-    public synchronized void close() throws IOException {
-        if (this.exception != null) {
-            final IOException e = exception;
-            exception = null;
-            throw e;
-        }
+    public void close() throws IOException {
+        checkException();
         if (this.closed)
             return;
         this.closed = true;
@@ -278,6 +273,15 @@ public class MultiplexedFileWriter {
             this.file.setLength(fileLength);
 
         this.file.close();
+        checkException();
+    }
+
+    private synchronized void checkException() throws IOException {
+        if (this.exception != null) {
+            final IOException e = this.exception;
+            this.exception = null;
+            throw e;
+        }
     }
 
 }
