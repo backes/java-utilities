@@ -123,7 +123,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      *             if the initial capacity is negative.
      */
     public IntegerToLongMap(final int initialMapCapacity) {
-        this(initialMapCapacity, DEFAULT_LOAD_FACTOR, DEFAULT_SWITCH_TO_MAP_RATIO, DEFAULT_SWITCH_TO_LIST_RATIO, Integer.MIN_VALUE);
+        this(initialMapCapacity, DEFAULT_LOAD_FACTOR, DEFAULT_SWITCH_TO_MAP_RATIO, DEFAULT_SWITCH_TO_LIST_RATIO, 0);
     }
 
     /**
@@ -566,8 +566,9 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
                 }
             }
         }
-        put(key, this.defaultValue + addValue);
-        return addValue;
+        final long newValue = this.defaultValue + addValue;
+        put(key, newValue);
+        return newValue;
     }
 
     private static final class Entry implements Map.Entry<Integer, Long> {
