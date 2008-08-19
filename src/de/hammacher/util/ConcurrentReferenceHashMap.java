@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -223,6 +224,9 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
     private transient Set<K> keySet;
     private transient Set<Map.Entry<K, V>> entrySet;
     private transient Collection<V> values;
+
+    private final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners
+        = new CopyOnWriteArrayList<RemoveStaleListener<? super V>>();
 
     /* ---------------- Small Utilities -------------- */
 
@@ -445,7 +449,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
          * value of this field is always <tt>(int)(capacity *
          * loadFactor)</tt>.)
          */
-        transient int threshold;
+        private transient int threshold;
 
         /**
          * The per-segment table.
@@ -459,26 +463,30 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
          *
          * @serial
          */
-        final float loadFactor;
+        private final float loadFactor;
 
         /**
          * The collected weak-key reference queue for this segment. This should
          * be (re)initialized whenever table is assigned,
          */
-        transient volatile ReferenceQueue<K> refQueue;
+        private transient volatile ReferenceQueue<K> refQueue;
 
-        final ReferenceType keyType;
+        private final ReferenceType keyType;
 
-        final ReferenceType valueType;
+        private final ReferenceType valueType;
 
-        final boolean identityComparisons;
+        private final boolean identityComparisons;
+
+        private final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners;
 
         Segment(final int initialCapacity, final float lf, final ReferenceType keyType,
-                final ReferenceType valueType, final boolean identityComparisons) {
+                final ReferenceType valueType, final boolean identityComparisons,
+                final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners) {
             this.loadFactor = lf;
             this.keyType = keyType;
             this.valueType = valueType;
             this.identityComparisons = identityComparisons;
+            this.removeStaleListeners = removeStaleListeners;
             setTable(HashEntry.<K, V> newArray(initialCapacity));
         }
 
@@ -623,7 +631,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         }
 
 
-        V put(final K key, final int hash, final V value, boolean onlyIfAbsent) {
+        V put(final K key, final int hash, final V value, final boolean onlyIfAbsent) {
             lock();
             try {
                 removeStale();
@@ -731,7 +739,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         /**
          * Remove; match on key only if value null, else match both.
          */
-        V remove(final Object key, final int hash, final Object value, boolean weakRemove) {
+        V remove(final Object key, final int hash, final Object value, final boolean weakRemove) {
             lock();
             try {
                 if (!weakRemove)
@@ -783,7 +791,10 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
             KeyReference ref;
             while ((ref = (KeyReference) this.refQueue.poll()) != null) {
-                remove(ref, ref.keyHash(), null, true);
+                final V removedValue = remove(ref, ref.keyHash(), null, true);
+                for (final RemoveStaleListener<? super V> rl: this.removeStaleListeners) {
+                    rl.removed(removedValue);
+                }
             }
         }
 
@@ -806,6 +817,13 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         }
     }
 
+    /**
+     * A Listener to be notified whenever an weak element of this map is automatically
+     * removed. It will not be notified when the user calls the remove method!
+     */
+    public static interface RemoveStaleListener<V> {
+        void removed(V removedValue);
+    }
 
     /* ---------------- Public operations -------------- */
 
@@ -871,7 +889,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         for (int i = 0; i < this.segments.length; ++i)
             this.segments[i] =
                     new Segment<K, V>(cap, loadFactor, keyType, valueType,
-                            this.identityComparisons);
+                            this.identityComparisons, this.removeStaleListeners);
     }
 
     /**
@@ -1803,4 +1821,13 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             put(key, value);
         }
     }
+
+    public void addRemoveStaleListener(final RemoveStaleListener<? super V> listener) {
+        this.removeStaleListeners.add(listener);
+    }
+
+    public boolean removeRemoveStaleListener(final RemoveStaleListener<? super V> listener) {
+        return this.removeStaleListeners.remove(listener);
+    }
+
 }
