@@ -1113,7 +1113,6 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         if (check != sum) { // Resort to locking all segments
             final long[] sumArr = new long[1];
             Segment.executeUnderLock(this.segments, new Runnable() {
-                @Override
                 public void run() {
                     for (final Segment<K, V> seg: ConcurrentReferenceHashMap.this.segments)
                         sumArr[0] += seg.count;
@@ -1212,8 +1211,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         }
         final boolean[] found = new boolean[1];
         Segment.executeUnderLock(this.segments, new Runnable() {
-           @Override
-            public void run() {
+           public void run() {
                for (int i = 0; i < segments1.length; ++i) {
                    if (segments1[i].containsValue(value)) {
                        found[0] = true;
