@@ -20,8 +20,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * An advanced hash table supporting configurable garbage collection semantics
@@ -225,8 +223,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
     private transient Set<Map.Entry<K, V>> entrySet;
     private transient Collection<V> values;
 
-    private final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners
-        = new CopyOnWriteArrayList<RemoveStaleListener<? super V>>();
+    private final ListenerList<RemoveStaleListener<? super V>> removeStaleListeners
+        = new ListenerList<RemoveStaleListener<? super V>>();
 
     /* ---------------- Small Utilities -------------- */
 
@@ -388,7 +386,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
      * ReentrantLock opportunistically, just to simplify some locking and avoid
      * separate construction.
      */
-    private static final class Segment<K, V> extends ReentrantLock implements
+    private static final class Segment<K, V> implements
             Serializable {
 
         /*
@@ -477,11 +475,11 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
         private final boolean identityComparisons;
 
-        private final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners;
+        private final ListenerList<RemoveStaleListener<? super V>> removeStaleListeners;
 
         Segment(final int initialCapacity, final float lf, final ReferenceType keyType,
                 final ReferenceType valueType, final boolean identityComparisons,
-                final CopyOnWriteArrayList<RemoveStaleListener<? super V>> removeStaleListeners) {
+                final ListenerList<RemoveStaleListener<? super V>> removeStaleListeners) {
             this.loadFactor = lf;
             this.keyType = keyType;
             this.valueType = valueType;
@@ -529,14 +527,9 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
          * reorder a HashEntry initialization with its table assignment, which
          * is legal under memory model but is not known to ever occur.
          */
-        V readValueUnderLock(final HashEntry<K, V> e) {
-            lock();
-            try {
-                removeStale();
-                return e.value();
-            } finally {
-                unlock();
-            }
+        synchronized V readValueUnderLock(final HashEntry<K, V> e) {
+            removeStale();
+            return e.value();
         }
 
         /* Specialized implementations of map methods */
@@ -592,78 +585,63 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             return false;
         }
 
-        boolean replace(final K key, final int hash, final V oldValue, final V newValue) {
-            lock();
-            try {
-                removeStale();
-                HashEntry<K, V> e = getFirst(hash);
-                while (e != null && (e.hash != hash || !keyEq(key, e.key())))
-                    e = e.next;
+        synchronized boolean replace(final K key, final int hash, final V oldValue, final V newValue) {
+            removeStale();
+            HashEntry<K, V> e = getFirst(hash);
+            while (e != null && (e.hash != hash || !keyEq(key, e.key())))
+                e = e.next;
 
-                boolean replaced = false;
-                if (e != null && oldValue.equals(e.value())) {
-                    replaced = true;
-                    e.setValue(newValue, this.valueType);
-                }
-                return replaced;
-            } finally {
-                unlock();
+            boolean replaced = false;
+            if (e != null && oldValue.equals(e.value())) {
+                replaced = true;
+                e.setValue(newValue, this.valueType);
             }
+            return replaced;
         }
 
-        V replace(final K key, final int hash, final V newValue) {
-            lock();
-            try {
-                removeStale();
-                HashEntry<K, V> e = getFirst(hash);
-                while (e != null && (e.hash != hash || !keyEq(key, e.key())))
-                    e = e.next;
+        synchronized V replace(final K key, final int hash, final V newValue) {
+            removeStale();
+            HashEntry<K, V> e = getFirst(hash);
+            while (e != null && (e.hash != hash || !keyEq(key, e.key())))
+                e = e.next;
 
-                V oldValue = null;
-                if (e != null) {
-                    oldValue = e.value();
-                    e.setValue(newValue, this.valueType);
-                }
-                return oldValue;
-            } finally {
-                unlock();
+            V oldValue = null;
+            if (e != null) {
+                oldValue = e.value();
+                e.setValue(newValue, this.valueType);
             }
+            return oldValue;
         }
 
 
-        V put(final K key, final int hash, final V value, final boolean onlyIfAbsent) {
-            lock();
-            try {
-                removeStale();
-                int c = this.count;
-                if (c++ > this.threshold) {// ensure capacity
-                    final int reduced = rehash();
-                    if (reduced > 0) // adjust from possible weak cleanups
-                        this.count = (c -= reduced) - 1; // write-volatile
-                }
-
-                final HashEntry<K, V>[] tab = this.table;
-                final int index = hash & (tab.length - 1);
-                final HashEntry<K, V> first = tab[index];
-                HashEntry<K, V> e = first;
-                while (e != null && (e.hash != hash || !keyEq(key, e.key())))
-                    e = e.next;
-
-                V oldValue;
-                if (e != null) {
-                    oldValue = e.value();
-                    if (!onlyIfAbsent)
-                        e.setValue(value, this.valueType);
-                } else {
-                    oldValue = null;
-                    ++this.modCount;
-                    tab[index] = newHashEntry(key, hash, first, value);
-                    this.count = c; // write-volatile
-                }
-                return oldValue;
-            } finally {
-                unlock();
+        synchronized V put(final K key, final int hash, final V value, final boolean onlyIfAbsent) {
+            removeStale();
+            int c = this.count;
+            if (c++ > this.threshold) {// ensure capacity
+                final int reduced = rehash();
+                if (reduced > 0) // adjust from possible weak cleanups
+                    this.count = (c -= reduced) - 1; // write-volatile
             }
+
+            final HashEntry<K, V>[] tab = this.table;
+            final int index = hash & (tab.length - 1);
+            final HashEntry<K, V> first = tab[index];
+            HashEntry<K, V> e = first;
+            while (e != null && (e.hash != hash || !keyEq(key, e.key())))
+                e = e.next;
+
+            V oldValue;
+            if (e != null) {
+                oldValue = e.value();
+                if (!onlyIfAbsent)
+                    e.setValue(value, this.valueType);
+            } else {
+                oldValue = null;
+                ++this.modCount;
+                tab[index] = newHashEntry(key, hash, first, value);
+                this.count = c; // write-volatile
+            }
+            return oldValue;
         }
 
         int rehash() {
@@ -739,50 +717,45 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         /**
          * Remove; match on key only if value null, else match both.
          */
-        V remove(final Object key, final int hash, final Object value, final boolean weakRemove) {
-            lock();
-            try {
-                if (!weakRemove)
-                    removeStale();
-                int c = this.count - 1;
-                final HashEntry<K, V>[] tab = this.table;
-                final int index = hash & (tab.length - 1);
-                final HashEntry<K, V> first = tab[index];
-                HashEntry<K, V> e = first;
-                // a weak remove operation compares the WeakReference instance
-                while (e != null && (!weakRemove || key != e.keyRef)
-                        && (e.hash != hash || !keyEq(key, e.key())))
-                    e = e.next;
+        synchronized V remove(final Object key, final int hash, final Object value, final boolean weakRemove) {
+            if (!weakRemove)
+                removeStale();
+            int c = this.count - 1;
+            final HashEntry<K, V>[] tab = this.table;
+            final int index = hash & (tab.length - 1);
+            final HashEntry<K, V> first = tab[index];
+            HashEntry<K, V> e = first;
+            // a weak remove operation compares the WeakReference instance
+            while (e != null && (!weakRemove || key != e.keyRef)
+                    && (e.hash != hash || !keyEq(key, e.key())))
+                e = e.next;
 
-                V oldValue = null;
-                if (e != null) {
-                    final V v = e.value();
-                    if (value == null || value.equals(v)) {
-                        oldValue = v;
-                        // All entries following removed node can stay
-                        // in list, but all preceding ones need to be
-                        // cloned.
-                        ++this.modCount;
-                        HashEntry<K, V> newFirst = e.next;
-                        for (HashEntry<K, V> p = first; p != e; p = p.next) {
-                            final K pKey = p.key();
-                            if (pKey == null) { // Skip GC'd keys
-                                c--;
-                                continue;
-                            }
-
-                            newFirst =
-                                    newHashEntry(pKey, p.hash, newFirst, p
-                                        .value());
+            V oldValue = null;
+            if (e != null) {
+                final V v = e.value();
+                if (value == null || value.equals(v)) {
+                    oldValue = v;
+                    // All entries following removed node can stay
+                    // in list, but all preceding ones need to be
+                    // cloned.
+                    ++this.modCount;
+                    HashEntry<K, V> newFirst = e.next;
+                    for (HashEntry<K, V> p = first; p != e; p = p.next) {
+                        final K pKey = p.key();
+                        if (pKey == null) { // Skip GC'd keys
+                            c--;
+                            continue;
                         }
-                        tab[index] = newFirst;
-                        this.count = c; // write-volatile
+
+                        newFirst =
+                                newHashEntry(pKey, p.hash, newFirst, p
+                                    .value());
                     }
+                    tab[index] = newFirst;
+                    this.count = c; // write-volatile
                 }
-                return oldValue;
-            } finally {
-                unlock();
             }
+            return oldValue;
         }
 
         final void removeStale() {
@@ -798,23 +771,88 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             }
         }
 
-        void clear() {
+        synchronized void clear() {
             if (this.count != 0) {
-                lock();
-                try {
-                    final HashEntry<K, V>[] tab = this.table;
-                    for (int i = 0; i < tab.length; i++)
-                        tab[i] = null;
-                    ++this.modCount;
-                    // replace the reference queue to avoid unnecessary stale
-                    // cleanups
-                    this.refQueue = new ReferenceQueue<K>();
-                    this.count = 0; // write-volatile
-                } finally {
-                    unlock();
+                final HashEntry<K, V>[] tab = this.table;
+                for (int i = 0; i < tab.length; i++)
+                    tab[i] = null;
+                ++this.modCount;
+                // replace the reference queue to avoid unnecessary stale
+                // cleanups
+                this.refQueue = new ReferenceQueue<K>();
+                this.count = 0; // write-volatile
+            }
+        }
+
+        static void executeUnderLock(final Segment<?, ?>[] segments, final Runnable runnable) {
+            if (segments.length == 0)
+                runnable.run();
+            else
+                segments[0].executeUnderLock(segments, 1, runnable);
+        }
+
+        private synchronized void executeUnderLock(final Segment<?, ?>[] segments,
+                final int nextIndex, final Runnable runnable) {
+            if (nextIndex < segments.length)
+                segments[nextIndex].executeUnderLock(segments, nextIndex + 1, runnable);
+            else
+                runnable.run();
+        }
+    }
+
+    public static class ListenerList<V> implements Iterable<V> {
+        private Object[] listeners = new Object[0];
+
+        public synchronized void add(final V obj) {
+            final Object[] newListeners = new Object[this.listeners.length+1];
+            System.arraycopy(this.listeners, 0, newListeners, 0, this.listeners.length);
+            newListeners[this.listeners.length] = obj;
+            this.listeners = newListeners;
+        }
+
+        public synchronized void remove(final V obj) {
+            for (int i = 0; i < this.listeners.length; ++i) {
+                if (this.listeners[i].equals(obj)) {
+                    final Object[] newListeners = new Object[this.listeners.length-1];
+                    System.arraycopy(this.listeners, 0, newListeners, 0, i);
+                    if (i+1 < this.listeners.length) {
+                        System.arraycopy(this.listeners, i+1, newListeners, i, this.listeners.length-i-1);
+                    }
+                    this.listeners = newListeners;
                 }
             }
         }
+
+        public Iterator<V> iterator() {
+            return new ListenerListItr<V>(this.listeners);
+        }
+
+        private static class ListenerListItr<V> implements Iterator<V> {
+
+            private final Object[] listeners;
+            private int index = 0;
+
+            public ListenerListItr(final Object[] listeners) {
+                this.listeners = listeners;
+            }
+
+            public boolean hasNext() {
+                return this.index < this.listeners.length;
+            }
+
+            @SuppressWarnings("unchecked")
+            public V next() {
+                if (!hasNext())
+                    throw new NoSuchElementException();
+                return (V) this.listeners[this.index++];
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+
+        }
+
     }
 
     /**
@@ -1073,13 +1111,15 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
                 break;
         }
         if (check != sum) { // Resort to locking all segments
-            sum = 0;
-            for (int i = 0; i < segments1.length; ++i)
-                segments1[i].lock();
-            for (int i = 0; i < segments1.length; ++i)
-                sum += segments1[i].count;
-            for (int i = 0; i < segments1.length; ++i)
-                segments1[i].unlock();
+            final long[] sumArr = new long[1];
+            Segment.executeUnderLock(this.segments, new Runnable() {
+                @Override
+                public void run() {
+                    for (final Segment<K, V> seg: ConcurrentReferenceHashMap.this.segments)
+                        sumArr[0] += seg.count;
+                }
+            });
+            sum = sumArr[0];
         }
         if (sum > Integer.MAX_VALUE)
             return Integer.MAX_VALUE;
@@ -1158,8 +1198,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             boolean cleanSweep = true;
             if (mcsum != 0) {
                 for (int i = 0; i < segments1.length; ++i) {
-                    // volatile-read
                     @SuppressWarnings("unused")
+                    // volatile-read
                     final int c = segments1[i].count;
                     if (mc[i] != segments1[i].modCount) {
                         cleanSweep = false;
@@ -1170,22 +1210,19 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             if (cleanSweep)
                 return false;
         }
-        // Resort to locking all segments
-        for (int i = 0; i < segments1.length; ++i)
-            segments1[i].lock();
-        boolean found = false;
-        try {
-            for (int i = 0; i < segments1.length; ++i) {
-                if (segments1[i].containsValue(value)) {
-                    found = true;
-                    break;
-                }
+        final boolean[] found = new boolean[1];
+        Segment.executeUnderLock(this.segments, new Runnable() {
+           @Override
+            public void run() {
+               for (int i = 0; i < segments1.length; ++i) {
+                   if (segments1[i].containsValue(value)) {
+                       found[0] = true;
+                       break;
+                   }
+               }
             }
-        } finally {
-            for (int i = 0; i < segments1.length; ++i)
-                segments1[i].unlock();
-        }
-        return found;
+        });
+        return found[0];
     }
 
     /**
@@ -1774,8 +1811,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
         for (int k = 0; k < this.segments.length; ++k) {
             final Segment<K, V> seg = this.segments[k];
-            seg.lock();
-            try {
+            synchronized (seg) {
                 final HashEntry<K, V>[] tab = seg.table;
                 for (int i = 0; i < tab.length; ++i) {
                     for (HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
@@ -1787,8 +1823,6 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
                         s.writeObject(e.value());
                     }
                 }
-            } finally {
-                seg.unlock();
             }
         }
         s.writeObject(null);
@@ -1826,8 +1860,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         this.removeStaleListeners.add(listener);
     }
 
-    public boolean removeRemoveStaleListener(final RemoveStaleListener<? super V> listener) {
-        return this.removeStaleListeners.remove(listener);
+    public void removeRemoveStaleListener(final RemoveStaleListener<? super V> listener) {
+        this.removeStaleListeners.remove(listener);
     }
 
 }
