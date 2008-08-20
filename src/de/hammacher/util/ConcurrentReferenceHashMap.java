@@ -1211,7 +1211,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
         }
         final boolean[] found = new boolean[1];
         Segment.executeUnderLock(this.segments, new Runnable() {
-           public void run() {
+            public void run() {
                for (int i = 0; i < segments1.length; ++i) {
                    if (segments1[i].containsValue(value)) {
                        found[0] = true;
@@ -1359,8 +1359,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
      */
     @Override
     public void clear() {
-        for (int i = 0; i < this.segments.length; ++i)
-            this.segments[i].clear();
+        for (final Segment<K, V> s: this.segments)
+            s.clear();
     }
 
     /**
@@ -1370,13 +1370,10 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
      * some cases where this operation should be performed eagerly, such as
      * cleaning up old references to a ClassLoader in a multi-classloader
      * environment.
-     *
-     * Note: this method will acquire locks, one at a time, across all segments
-     * of this table, so if it is to be used, it should be used sparingly.
      */
     public void purgeStaleEntries() {
-        for (int i = 0; i < this.segments.length; ++i)
-            this.segments[i].removeStale();
+        for (final Segment<K, V> s: this.segments)
+            s.removeStale();
     }
 
 
