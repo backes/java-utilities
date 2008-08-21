@@ -5,7 +5,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import de.hammacher.util.ConcurrentReferenceHashMap.Option;
+import de.hammacher.util.ConcurrentReferenceHashMap.ReferenceType;
 
 public class MultiplexedFileWriter {
 
@@ -15,13 +20,23 @@ public class MultiplexedFileWriter {
         private int depth = 0;
         protected long dataLength = 0;
         protected int startBlockAddr = 0; // is set on close()
-        private final byte[][] dataBlocks = new byte[MultiplexedFileWriter.this.maxDepth+1][];
-        private final int[] full = new int[MultiplexedFileWriter.this.maxDepth+1];
+        private byte[][] dataBlocks = new byte[MultiplexedFileWriter.this.maxDepth+1][];
+        private int[] full = new int[MultiplexedFileWriter.this.maxDepth+1];
         private volatile boolean streamClosed = false;
 
         protected MultiplexOutputStream(final int id) {
             this.id = id;
             this.dataBlocks[0] = new byte[MultiplexedFileWriter.this.blockSize];
+        }
+
+        @Override
+        protected void finalize() throws Throwable {
+            try {
+                close();
+            } catch (final IOException e) {
+                MultiplexedFileWriter.this.exception = e;
+            }
+            super.finalize();
         }
 
         @Override
@@ -145,6 +160,10 @@ public class MultiplexedFileWriter {
 
             this.startBlockAddr = writeBlock(this.dataBlocks[0]);
 
+            // now we can release most buffers
+            this.dataBlocks = null;
+            this.full = null;
+
             // after all this work, store the information about this stream to the streamDefs stream
             if (this != MultiplexedFileWriter.this.streamDefs) {
                 synchronized (MultiplexedFileWriter.this) {
@@ -170,26 +189,17 @@ public class MultiplexedFileWriter {
 
     private int nextBlockAddr = 0;
 
-    private int nextStreamNr = 0;
+    private final AtomicInteger nextStreamNr = new AtomicInteger(0);
 
     // may be set when an error occurs asynchronously. is thrown on the next
     // operation on this file.
     protected IOException exception = null;
 
     // holds all open streams. they still have to be written out on close()
-    private final Map<MultiplexOutputStream, MultiplexOutputStream> openStreams =
-        new WeakIdentityHashMap<MultiplexOutputStream, MultiplexOutputStream>() {
-            @Override
-            protected void removing(final MultiplexOutputStream value) {
-                try {
-                    value.close();
-                } catch (final IOException e) {
-                    synchronized (MultiplexedFileWriter.this) {
-                        MultiplexedFileWriter.this.exception = e;
-                    }
-                }
-            }
-        };
+    public final Map<MultiplexOutputStream, Object> openStreams =
+        new ConcurrentReferenceHashMap<MultiplexOutputStream, Object>(
+            65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
+            EnumSet.of(Option.IDENTITY_COMPARISONS));
 
     private boolean closed = false;
 
@@ -258,16 +268,18 @@ public class MultiplexedFileWriter {
         this(new RandomAccessFile(filename, "rw"), blockSize, maxDepth);
     }
 
-    public synchronized MultiplexOutputStream newOutputStream() {
+    public MultiplexOutputStream newOutputStream() {
         if (this.closed)
             throw new IllegalStateException(getClass().getSimpleName() + " closed");
-        final int streamNr = this.nextStreamNr++;
+        final int streamNr = this.nextStreamNr.getAndIncrement();
         final MultiplexOutputStream newStream = new MultiplexOutputStream(streamNr);
-        this.openStreams.put(newStream, newStream);
+        this.openStreams.put(newStream, this);
         return newStream;
     }
 
     public synchronized int writeBlock(final byte[] data) throws IOException {
+        if (this.closed)
+            throw new IOException(getClass().getSimpleName() + " is closed");
         if (this.nextBlockAddr == 0 && this.file.length() > headerSize)
             throw new IOException("Maximum file size reached");
         this.file.write(data, 0, this.blockSize);

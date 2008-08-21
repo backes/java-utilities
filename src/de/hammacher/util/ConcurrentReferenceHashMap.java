@@ -570,8 +570,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
                 for (int i = 0; i < len; i++) {
                     for (HashEntry<K, V> e = tab[i]; e != null; e = e.next) {
                         final Object opaque = e.valueRef;
-                        V v;
 
+                        final V v;
                         if (opaque == null)
                             v = readValueUnderLock(e); // recheck
                         else
@@ -696,9 +696,9 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
                         newTable[lastIdx] = lastRun;
                         // Clone all remaining nodes
                         for (HashEntry<K, V> p = e; p != lastRun; p = p.next) {
-                            // Skip GC'd weak refs
                             final K key = p.key();
-                            if (key == null) {
+                            // only skip GC'd weak refs if there are no listeners
+                            if (this.removeStaleListeners.size() == 0 && key == null) {
                                 reduce++;
                                 continue;
                             }
@@ -742,7 +742,8 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
                     HashEntry<K, V> newFirst = e.next;
                     for (HashEntry<K, V> p = first; p != e; p = p.next) {
                         final K pKey = p.key();
-                        if (pKey == null) { // Skip GC'd keys
+                        // Skip GC'd keys only if no listeners are present
+                        if (this.removeStaleListeners.size() == 0 && pKey == null) {
                             c--;
                             continue;
                         }
@@ -765,9 +766,10 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             KeyReference ref;
             while ((ref = (KeyReference) this.refQueue.poll()) != null) {
                 final V removedValue = remove(ref, ref.keyHash(), null, true);
-                for (final RemoveStaleListener<? super V> rl: this.removeStaleListeners) {
-                    rl.removed(removedValue);
-                }
+                if (removedValue != null)
+                    for (final RemoveStaleListener<? super V> rl: this.removeStaleListeners) {
+                        rl.removed(removedValue);
+                    }
             }
         }
 
@@ -808,6 +810,10 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             System.arraycopy(this.listeners, 0, newListeners, 0, this.listeners.length);
             newListeners[this.listeners.length] = obj;
             this.listeners = newListeners;
+        }
+
+        public int size() {
+            return this.listeners.length;
         }
 
         public synchronized void remove(final V obj) {
