@@ -1,6 +1,5 @@
 package de.hammacher.util;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -204,7 +203,7 @@ public class MultiplexedFileWriter {
     private boolean closed = false;
 
     protected final MultiplexOutputStream streamDefs;
-    protected final DataOutputStream streamDefsDataOut;
+    protected final MyDataOutputStream streamDefsDataOut;
 
     protected final int blockSize;
     protected final int maxDepth;
@@ -244,7 +243,7 @@ public class MultiplexedFileWriter {
         this.blockSize = blockSize;
         this.maxDepth = maxDepth;
         this.streamDefs = new MultiplexOutputStream(-1);
-        this.streamDefsDataOut = new DataOutputStream(this.streamDefs);
+        this.streamDefsDataOut = new MyDataOutputStream(this.streamDefs);
     }
 
     /**
@@ -277,9 +276,7 @@ public class MultiplexedFileWriter {
         return newStream;
     }
 
-    public synchronized int writeBlock(final byte[] data) throws IOException {
-        if (this.closed)
-            throw new IOException(getClass().getSimpleName() + " is closed");
+    protected synchronized int writeBlock(final byte[] data) throws IOException {
         if (this.nextBlockAddr == 0 && this.file.length() > headerSize)
             throw new IOException("Maximum file size reached (length: " + this.file.length() + " bytes)");
         this.file.write(data, 0, this.blockSize);
