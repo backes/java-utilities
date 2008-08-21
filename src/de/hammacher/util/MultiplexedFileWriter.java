@@ -281,7 +281,7 @@ public class MultiplexedFileWriter {
         if (this.closed)
             throw new IOException(getClass().getSimpleName() + " is closed");
         if (this.nextBlockAddr == 0 && this.file.length() > headerSize)
-            throw new IOException("Maximum file size reached");
+            throw new IOException("Maximum file size reached (length: " + this.file.length() + " bytes)");
         this.file.write(data, 0, this.blockSize);
         return this.nextBlockAddr++;
     }

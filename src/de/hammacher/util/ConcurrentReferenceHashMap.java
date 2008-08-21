@@ -164,7 +164,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
      * The default initial capacity for this table, used when not otherwise
      * specified in a constructor.
      */
-    private static final int DEFAULT_INITIAL_CAPACITY = 16;
+    private static final int DEFAULT_INITIAL_CAPACITY = 32;
 
     /**
      * The default load factor for this table, used when not otherwise specified
