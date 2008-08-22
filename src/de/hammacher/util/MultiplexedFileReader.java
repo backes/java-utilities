@@ -227,7 +227,7 @@ public class MultiplexedFileReader {
             final int id = str.readInt();
             final int start = str.readInt();
             final long length = str.readLong();
-            if (this.streamBeginningBlocks[id] != 0 || this.streamLengths[id] != 0)
+            if (id >= numStreams || this.streamBeginningBlocks[id] != 0 || this.streamLengths[id] != 0)
                 throw new IOException("corrupted data");
             this.streamBeginningBlocks[id] = start;
             this.streamLengths[id] = length;
