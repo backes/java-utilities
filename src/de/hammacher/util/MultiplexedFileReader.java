@@ -218,12 +218,12 @@ public class MultiplexedFileReader {
         // read the stream defs
         final MultiplexInputStream streamDefStream = new MultiplexInputStream(-1, streamDefsStartingBlock, streamDefsLength);
         final MyDataInputStream str = new MyDataInputStream(streamDefStream);
-        int numStreams = (int) (streamDefStream.getDataLength()/16);
+        final int numStreams = (int) (streamDefStream.getDataLength()/16);
         if (numStreams < 1 || (long)numStreams*16 != streamDefStream.getDataLength())
             throw new IOException("corrupted data");
         this.streamBeginningBlocks = new int[numStreams];
         this.streamLengths = new long[numStreams];
-        while (numStreams-- > 0) {
+        for (int i = 0; i < numStreams; ++i) {
             final int id = str.readInt();
             final int start = str.readInt();
             final long length = str.readLong();
