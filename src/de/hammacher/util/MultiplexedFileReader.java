@@ -4,8 +4,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.util.Set;
 
 public class MultiplexedFileReader {
+
+    private static class StreamDef {
+
+        public int startAddr;
+        public long length;
+
+        public StreamDef(final int startAddr, final long length) {
+            this.startAddr = startAddr;
+            this.length = length;
+        }
+
+    }
 
     public class MultiplexInputStream extends InputStream {
 
@@ -42,7 +55,7 @@ public class MultiplexedFileReader {
             int d = 0;
             long max = MultiplexedFileReader.this.blockSize;
             while (max < len) {
-                d++;
+                ++d;
                 max *= MultiplexedFileReader.this.blockSize/4;
             }
             return d;
@@ -198,8 +211,7 @@ public class MultiplexedFileReader {
 
     protected final RandomAccessFile file;
 
-    private final int[] streamBeginningBlocks;
-    private final long[] streamLengths;
+    private final IntegerMap<StreamDef> streamDefs;
 
     public MultiplexedFileReader(final RandomAccessFile file) throws IOException {
         this.file = file;
@@ -219,18 +231,15 @@ public class MultiplexedFileReader {
         final MultiplexInputStream streamDefStream = new MultiplexInputStream(-1, streamDefsStartingBlock, streamDefsLength);
         final MyDataInputStream str = new MyDataInputStream(streamDefStream);
         final int numStreams = (int) (streamDefStream.getDataLength()/16);
-        if (numStreams < 1 || (long)numStreams*16 != streamDefStream.getDataLength())
+        if ((long)numStreams*16 != streamDefStream.getDataLength())
             throw new IOException("corrupted data");
-        this.streamBeginningBlocks = new int[numStreams];
-        this.streamLengths = new long[numStreams];
+        this.streamDefs = new IntegerMap<StreamDef>();
         for (int i = 0; i < numStreams; ++i) {
             final int id = str.readInt();
             final int start = str.readInt();
             final long length = str.readLong();
-            if (id >= numStreams || this.streamBeginningBlocks[id] != 0 || this.streamLengths[id] != 0)
+            if (this.streamDefs.put(id, new StreamDef(start, length)) != null)
                 throw new IOException("corrupted data");
-            this.streamBeginningBlocks[id] = start;
-            this.streamLengths[id] = length;
         }
         str.close();
     }
@@ -244,14 +253,16 @@ public class MultiplexedFileReader {
         this(new RandomAccessFile(filename, "r"));
     }
 
-    public int getNoStreams() {
-        return this.streamBeginningBlocks.length;
+    public Set<Integer> getStreamIds() {
+        // unmodifiable by definition
+        return this.streamDefs.keySet();
     }
 
     public MultiplexInputStream getInputStream(final int index) throws IOException {
-        if (index < 0 || index >= this.streamBeginningBlocks.length)
-            throw new IndexOutOfBoundsException("stream " + index + " does not exist");
-        return new MultiplexInputStream(index, this.streamBeginningBlocks[index], this.streamLengths[index]);
+        final StreamDef def = this.streamDefs.get(index);
+        if (def == null)
+            return null;
+        return new MultiplexInputStream(index, def.startAddr, def.length);
     }
 
     public void close() throws IOException {
