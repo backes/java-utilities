@@ -456,7 +456,7 @@ public class MultiplexedFileWriter {
             }
 
             @Override
-            public int available() throws IOException {
+            public int available() {
                 return this.remainingInCurrentBlock;
             }
 
