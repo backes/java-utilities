@@ -316,8 +316,10 @@ public class MultiplexedFileWriter {
         public class Reader extends InputStream {
 
             private int[][] readPointerBlocks;
-            private byte[] readDataBlock = new byte[MultiplexedFileWriter.this.blockSize];
+            private byte[] readDataBlock;
             private int[] pos;
+            private final byte[] dataBlockBuf = new byte[MultiplexedFileWriter.this.blockSize];
+            private int[][] pointerBlockBufs = null;
             private int remainingInCurrentBlock;
             private boolean readerClosed = false;
 
@@ -333,70 +335,86 @@ public class MultiplexedFileWriter {
                 synchronized (MultiplexOutputStream.this) {
                     if (this.readerClosed)
                         throw new IOException("closed");
-                    final long length = length();
-                    final int[] newPos = getBlocksPos(length, toPos);
-                    final boolean reInitialize = this.pos == null || this.pos.length != newPos.length;
-                    final int depth = MultiplexOutputStream.this.innerOut.depth;
-                    if (reInitialize)
-                        this.readPointerBlocks = new int[depth][MultiplexedFileWriter.this.blockSize/4];
-                    if (depth == 0) {
-                        if (reInitialize) {
-                            this.readDataBlock = MultiplexOutputStream.this.innerOut.dataBlock;
-                        }
-                    } else {
-                        boolean reRead = reInitialize;
-                        boolean atEnd = true;
-                        for (int i = 0; i < depth; ++i) {
-                            if (reRead) {
-                                if (atEnd) {
-                                    this.readPointerBlocks[i] = MultiplexOutputStream.this.innerOut.pointerBlocks[i];
-                                } else {
-                                    this.readPointerBlocks[i] = new int[MultiplexedFileWriter.this.blockSize/4];
-                                    final int blockAddr = this.readPointerBlocks[i-1][newPos[i-1]];
-                                    readBlock(blockAddr, this.readPointerBlocks[i]);
-                                }
-                            }
-                            reRead = reRead || this.pos[i] != newPos[i];
-                            atEnd = atEnd && newPos[i] == MultiplexOutputStream.this.innerOut.full[i];
-                        }
-                        if (reRead) {
-                            if (atEnd) {
-                                this.readDataBlock = MultiplexOutputStream.this.innerOut.dataBlock;
-                            } else {
-                                this.readDataBlock = new byte[MultiplexedFileWriter.this.blockSize];
-                                readBlock(this.readPointerBlocks[depth-1][newPos[depth-1]], this.readDataBlock);
-                            }
-                        }
-                    }
-                    this.remainingInCurrentBlock = (int) Math.min(length-toPos,
-                            MultiplexedFileWriter.this.blockSize-newPos[depth]);
-                    this.pos = newPos;
+                    seek(getBlocksPos(toPos));
                 }
             }
 
-            private int[] getBlocksPos(final long streamLength, final long position) throws IOException {
-                if (position > streamLength)
-                    throw new IOException("Cannot seek behind end of stream");
+            private void seek(final int[] newPos) throws IOException {
+                final boolean reInitialize = this.pos == null || this.pos.length != newPos.length;
+                final int depth = MultiplexOutputStream.this.innerOut.depth;
+                if (reInitialize) {
+                    this.readPointerBlocks = new int[depth][];
+                    this.pointerBlockBufs = new int[depth][MultiplexedFileWriter.this.blockSize/4];
+                }
+                if (depth == 0) {
+                    if (reInitialize) {
+                        this.readDataBlock = MultiplexOutputStream.this.innerOut.dataBlock;
+                    }
+                    this.remainingInCurrentBlock = (MultiplexOutputStream.this.innerOut.full[0] - newPos[0]);
+                } else {
+                    boolean reRead = reInitialize;
+                    boolean atEnd = true;
+                    for (int i = 0; i < depth; ++i) {
+                        if (reRead) {
+                            if (atEnd) {
+                                this.readPointerBlocks[i] = MultiplexOutputStream.this.innerOut.pointerBlocks[i];
+                            } else {
+                                this.readPointerBlocks[i] = this.pointerBlockBufs[i];
+                                final int blockAddr = this.readPointerBlocks[i-1][newPos[i-1]];
+                                readBlock(blockAddr, this.readPointerBlocks[i]);
+                            }
+                        }
+                        reRead = reRead || this.pos[i] != newPos[i];
+                        atEnd = atEnd && newPos[i] == MultiplexOutputStream.this.innerOut.full[i];
+                    }
+                    if (reRead) {
+                        if (atEnd) {
+                            this.readDataBlock = MultiplexOutputStream.this.innerOut.dataBlock;
+                        } else {
+                            this.readDataBlock = this.dataBlockBuf;
+                            readBlock(this.readPointerBlocks[depth-1][newPos[depth-1]], this.readDataBlock);
+                        }
+                    }
+                    this.remainingInCurrentBlock = (atEnd ? MultiplexOutputStream.this.innerOut.full[depth]
+                            : MultiplexedFileWriter.this.blockSize) - newPos[depth];
+                }
+                this.pos = newPos;
+            }
+
+            private int[] getBlocksPos(final long position) throws IOException {
                 if (position < 0)
                     throw new IOException("Seek position must be >= 0");
 
-                final int[] newPos = new int[MultiplexOutputStream.this.innerOut.depth+1];
-                if (MultiplexOutputStream.this.innerOut.depth == 0) {
+                final int depth = MultiplexOutputStream.this.innerOut.depth;
+                final int[] full = MultiplexOutputStream.this.innerOut.full;
+                final int[] newPos = new int[depth+1];
+                if (depth == 0) {
+                    if (position > full[0])
+                        throw new IOException("Cannot seek behind end of stream");
                     newPos[0] = (int) position;
                 } else {
-                    newPos[MultiplexOutputStream.this.innerOut.depth] = (int) (position % MultiplexedFileWriter.this.blockSize);
+                    newPos[depth] = (int) (position % MultiplexedFileWriter.this.blockSize);
                     long remaining = position / MultiplexedFileWriter.this.blockSize;
-                    for (int d = MultiplexOutputStream.this.innerOut.depth-1; d > 0; --d) {
+                    for (int d = depth-1; d > 0; --d) {
                         newPos[d] = (int) (remaining % (MultiplexedFileWriter.this.blockSize/4));
                         remaining = remaining / (MultiplexedFileWriter.this.blockSize/4);
                     }
                     assert remaining <= MultiplexedFileWriter.this.blockSize/4;
                     newPos[0] = (int) remaining;
-                    for (int d = 0; d < MultiplexOutputStream.this.innerOut.depth && newPos[d] > MultiplexOutputStream.this.innerOut.full[d]; ++d) {
-                        assert newPos[d] == MultiplexOutputStream.this.innerOut.full[d]+1 && newPos[d+1] == 0;
+                    boolean atEnd = true;
+                    for (int d = 0; d < depth; ++d) {
+                        if (newPos[d] <= full[d]) {
+                            atEnd = false;
+                            break;
+                        }
+
+                        if (newPos[d] != full[d]+1 || newPos[d+1] != 0)
+                            throw new IOException("Cannot seek behind end of stream");
                         --newPos[d];
-                        newPos[d+1] = d == MultiplexOutputStream.this.innerOut.depth-1 ? MultiplexedFileWriter.this.blockSize : MultiplexedFileWriter.this.blockSize/4;
+                        newPos[d+1] = d == depth-1 ? MultiplexedFileWriter.this.blockSize : MultiplexedFileWriter.this.blockSize/4;
                     }
+                    if (atEnd && newPos[depth] > full[depth])
+                        throw new IOException("Cannot seek behind end of stream");
                 }
                 return newPos;
             }
@@ -406,7 +424,7 @@ public class MultiplexedFileWriter {
                 if (this.readerClosed)
                     throw new IOException("closed");
                 if (this.remainingInCurrentBlock == 0) {
-                    seek(getPosition());
+                    moveToNextBlock();
                     if (this.remainingInCurrentBlock == 0)
                         return -1;
                 }
@@ -429,7 +447,7 @@ public class MultiplexedFileWriter {
                 final int end = off + len;
                 while (ptr < end) {
                     while (this.remainingInCurrentBlock == 0) {
-                        seek(getPosition());
+                        moveToNextBlock();
                         if (this.remainingInCurrentBlock == 0)
                             return ptr == off ? -1 : ptr - off;
                     }
@@ -442,6 +460,53 @@ public class MultiplexedFileWriter {
                 }
                 assert ptr == end;
                 return len;
+            }
+
+            private void moveToNextBlock() throws IOException {
+                synchronized (MultiplexOutputStream.this) {
+                    final int depth = MultiplexOutputStream.this.innerOut.depth;
+                    if (depth == 0)
+                        return;
+                    if (this.pos.length != depth+1) {
+                        seek(getBlocksPos(getPosition()));
+                        return;
+                    }
+                    final int[] newPos = new int[depth+1];
+
+                    if (this.pos[depth] == MultiplexedFileWriter.this.blockSize) {
+                        for (int d = depth-1; d >= 0; --d) {
+                            if (this.pos[d] == MultiplexedFileWriter.this.blockSize/4) {
+                                if (d == 0)
+                                    return;
+                                newPos[d] = 0;
+                            } else {
+                                newPos[d] = this.pos[d]+1;
+                                if (d > 0)
+                                    System.arraycopy(this.pos, 0, newPos, 0, d);
+                                break;
+                            }
+                        }
+                    } else {
+                        System.arraycopy(this.pos, 0, newPos, 0, this.pos.length);
+                    }
+
+                    boolean atEnd = true;
+                    final int[] full = MultiplexOutputStream.this.innerOut.full;
+                    for (int d = 0; d < depth; ++d) {
+                        if (newPos[d] <= full[d]) {
+                            atEnd = false;
+                            break;
+                        }
+
+                        assert newPos[d] == full[d]+1;
+                        assert newPos[d+1] == 0;
+                        --newPos[d];
+                        newPos[d+1] = d == depth-1 ? MultiplexedFileWriter.this.blockSize : MultiplexedFileWriter.this.blockSize/4;
+                    }
+                    assert !atEnd || newPos[depth] <= full[depth];
+
+                    seek(newPos);
+                }
             }
 
             public long getPosition() {
@@ -813,8 +878,8 @@ public class MultiplexedFileWriter {
             this.streamDefs.close();
             int streamDefsStartBlock = this.streamDefs.innerOut.startBlockAddr;
 
-            final int numFreeBlocks = this.freeBlocks.size();
             int newBlockCount = this.nextBlockAddr.get();
+            final int numFreeBlocks = this.freeBlocks.size();
             if (numFreeBlocks > 0 && (this.blockSize & 15) == 0) {
                 newBlockCount -= numFreeBlocks;
                 streamDefsStartBlock = compactStream(streamDefsStartBlock, this.streamDefs.length(), newBlockCount);
@@ -971,13 +1036,13 @@ public class MultiplexedFileWriter {
                                 pos[du] = 0;
                             }
                             break;
-                        } else {
-                            if (d == 0)
-                                throw new RuntimeException("should not get here");
-                            if (changed[d]) {
-                                writeBlock(pointerBlocks[d-1][pos[d-1]], pointerBlocks[d]);
-                                changed[d] = false;
-                            }
+                        }
+
+                        if (d == 0)
+                            throw new RuntimeException("should not get here");
+                        if (changed[d]) {
+                            writeBlock(pointerBlocks[d-1][pos[d-1]], pointerBlocks[d]);
+                            changed[d] = false;
                         }
                     }
                 }

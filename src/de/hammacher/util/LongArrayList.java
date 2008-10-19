@@ -5,6 +5,9 @@ import java.util.AbstractList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 
 public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, Cloneable, java.io.Serializable {
@@ -30,9 +33,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         super();
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal Capacity: " + initialCapacity);
-        if (initialCapacity > maxElementsPerArray)
+        if (initialCapacity > maxElementsPerArray) {
             this.elements = new Object[(int) ((initialCapacity >>> 34)+1)][];
-        else
+            for (int i = 0; i < this.elements.length-1; ++i)
+                this.elements[i] = new Object[maxElementsPerArray];
+            this.elements[this.elements.length-1] = new Object[(int)initialCapacity & lowerArrayMask];
+        } else
             this.elements = new Object[1][(int) initialCapacity];
     }
 
@@ -422,6 +428,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         final int pos1 = (int) (this.size >>> 34);
         final int pos2 = ((int)this.size) & lowerArrayMask;
         this.elements[pos1][pos2] = e;
+        ++this.size;
         return true;
     }
 
@@ -724,10 +731,24 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         }
     }
 
+    /**
+     * Removes from this list all of the elements whose index is between <tt>fromIndex</tt>, inclusive, and
+     * <tt>toIndex</tt>, exclusive. Shifts any succeeding elements to the left (reduces their index). This call shortens
+     * the list by <tt>(toIndex - fromIndex)</tt> elements. (If <tt>toIndex==fromIndex</tt>, this operation has no
+     * effect.)
+     *
+     * @param fromIndex
+     *            index of first element to be removed
+     * @param toIndex
+     *            index after last element to be removed
+     * @throws IndexOutOfBoundsException
+     *             if fromIndex or toIndex out of range (fromIndex &lt; 0 || fromIndex &gt;= size() || toIndex &gt;
+     *             size() || toIndex &lt; fromIndex)
+     */
     protected void removeRange(final long fromIndex, final long toIndex) {
         moveBackward(fromIndex, this.size - toIndex);
-        // TODO Auto-generated method stub
-
+        // TODO null out elements
+        this.size -= toIndex - fromIndex;
     }
 
     /**
@@ -809,6 +830,202 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
     @SuppressWarnings("unchecked")
     private static <T> T[] arrayCopy(final T[] original, final int newLength) {
         return arrayCopy(original, newLength, (Class<? extends T>)original.getClass().getComponentType());
+    }
+
+    // Iterators
+
+    /**
+     * Returns an iterator over the elements in this list in proper sequence.
+     *
+     * <p>
+     * This implementation returns a straightforward implementation of the iterator interface, relying on the backing
+     * list's {@code size()}, {@code get(int)}, and {@code remove(int)} methods.
+     *
+     * <p>
+     * Note that the iterator returned by this method will throw an {@code UnsupportedOperationException} in response to
+     * its {@code remove} method unless the list's {@code remove(int)} method is overridden.
+     *
+     * <p>
+     * This implementation can be made to throw runtime exceptions in the face of concurrent modification, as described
+     * in the specification for the (protected) {@code modCount} field.
+     *
+     * @return an iterator over the elements in this list in proper sequence
+     *
+     * @see #modCount
+     */
+    @Override
+    public Iterator<T> iterator() {
+        return new Itr();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * This implementation returns {@code listIterator(0)}.
+     *
+     * @see #listIterator(int)
+     */
+    @Override
+    public ListIterator<T> listIterator() {
+        return listIterator(0);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>
+     * This implementation returns a straightforward implementation of the {@code ListIterator} interface that extends
+     * the implementation of the {@code Iterator} interface returned by the {@code iterator()} method. The {@code
+     * ListIterator} implementation relies on the backing list's {@code get(int)}, {@code set(int, E)}, {@code add(int,
+     * E)} and {@code remove(int)} methods.
+     *
+     * <p>
+     * Note that the list iterator returned by this implementation will throw an {@code UnsupportedOperationException}
+     * in response to its {@code remove}, {@code set} and {@code add} methods unless the list's {@code remove(int)},
+     * {@code set(int, E)}, and {@code add(int, E)} methods are overridden.
+     *
+     * <p>
+     * This implementation can be made to throw runtime exceptions in the face of concurrent modification, as described
+     * in the specification for the (protected) {@code modCount} field.
+     *
+     * @throws IndexOutOfBoundsException
+     *             {@inheritDoc}
+     *
+     * @see #modCount
+     */
+    @Override
+    public ListIterator<T> listIterator(final int index) {
+        if (index < 0 || index > size())
+            throw new IndexOutOfBoundsException("Index: " + index);
+
+        return new ListItr(index);
+    }
+
+    protected int getModCount() {
+        return this.modCount;
+    }
+
+    private class Itr implements Iterator<T> {
+
+        protected Itr() {
+            // nop
+        }
+
+        /**
+         * Index of element to be returned by subsequent call to next.
+         */
+        long cursor = 0;
+
+        /**
+         * Index of element returned by most recent call to next or previous. Reset to -1 if this element is deleted by
+         * a call to remove.
+         */
+        long lastRet = -1;
+
+        /**
+         * The modCount value that the iterator believes that the backing List should have. If this expectation is
+         * violated, the iterator has detected concurrent modification.
+         */
+        int expectedModCount = getModCount();
+
+        public boolean hasNext() {
+            return this.cursor != size();
+        }
+
+        public T next() {
+            checkForComodification();
+            try {
+                final T next = get(this.cursor);
+                this.lastRet = this.cursor++;
+                return next;
+            } catch (final IndexOutOfBoundsException e) {
+                checkForComodification();
+                throw new NoSuchElementException();
+            }
+        }
+
+        public void remove() {
+            if (this.lastRet == -1)
+                throw new IllegalStateException();
+            checkForComodification();
+
+            try {
+                LongArrayList.this.remove(this.lastRet);
+                if (this.lastRet < this.cursor)
+                    this.cursor--;
+                this.lastRet = -1;
+                this.expectedModCount = getModCount();
+            } catch (final IndexOutOfBoundsException e) {
+                throw new ConcurrentModificationException();
+            }
+        }
+
+        final void checkForComodification() {
+            if (getModCount() != this.expectedModCount)
+                throw new ConcurrentModificationException();
+        }
+    }
+
+    private class ListItr extends Itr implements ListIterator<T> {
+
+        protected ListItr(final long index) {
+            this.cursor = index;
+        }
+
+        public boolean hasPrevious() {
+            return this.cursor != 0;
+        }
+
+        public T previous() {
+            checkForComodification();
+            try {
+                final long i = this.cursor - 1;
+                final T previous = get(i);
+                this.lastRet = this.cursor = i;
+                return previous;
+            } catch (final IndexOutOfBoundsException e) {
+                checkForComodification();
+                throw new NoSuchElementException();
+            }
+        }
+
+        public int nextIndex() {
+            if (this.cursor >= Integer.MAX_VALUE)
+                return Integer.MAX_VALUE;
+            return (int) this.cursor;
+        }
+
+        public int previousIndex() {
+            if (this.cursor > Integer.MAX_VALUE)
+                return Integer.MAX_VALUE;
+            return (int) (this.cursor-1);
+        }
+
+        public void set(final T e) {
+            if (this.lastRet == -1)
+                throw new IllegalStateException();
+            checkForComodification();
+
+            try {
+                LongArrayList.this.set(this.lastRet, e);
+                this.expectedModCount = getModCount();
+            } catch (final IndexOutOfBoundsException ex) {
+                throw new ConcurrentModificationException();
+            }
+        }
+
+        public void add(final T e) {
+            checkForComodification();
+
+            try {
+                LongArrayList.this.add(this.cursor++, e);
+                this.lastRet = -1;
+                this.expectedModCount = getModCount();
+            } catch (final IndexOutOfBoundsException ex) {
+                throw new ConcurrentModificationException();
+            }
+        }
     }
 
 }
