@@ -1,6 +1,5 @@
 package de.hammacher.util;
 
-import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -10,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Clemens Hammacher
  */
-public class IntHolder extends Number implements Serializable {
+public class IntHolder extends Number {
 
     private static final long serialVersionUID = 9105103358098386487L;
 
