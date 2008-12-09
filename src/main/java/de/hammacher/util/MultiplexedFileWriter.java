@@ -18,6 +18,8 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,6 +30,54 @@ import de.hammacher.util.ConcurrentReferenceHashMap.RemoveStaleListener;
 import de.hammacher.util.MultiplexedFileWriter.MultiplexOutputStream.InnerOutputStream;
 
 public class MultiplexedFileWriter {
+
+    private class FlushThread extends Thread {
+
+        private final AtomicBoolean doFlush;
+        private final Semaphore waitForFlushRequest;
+        private final AtomicReference<MappedByteBuffer> omitBuffer;
+
+        public FlushThread() {
+            super("MultiplexedFile Flusher");
+            setDaemon(true);
+            this.doFlush = new AtomicBoolean(false);
+            this.waitForFlushRequest = new Semaphore(0);
+            this.omitBuffer = new AtomicReference<MappedByteBuffer>();
+        }
+
+        @Override
+        public void run() {
+            try {
+                long nanoSeconds = 0;
+                while (true) {
+                    MappedByteBuffer omit;
+                    if (this.waitForFlushRequest.tryAcquire(Math.max(nanoSeconds, 10*1000*1000*1000l), TimeUnit.NANOSECONDS)) {
+                        final boolean oldValue = this.doFlush.getAndSet(false);
+                        assert oldValue == true;
+                        omit = this.omitBuffer.getAndSet(null);
+                    } else {
+                        omit = null;
+                    }
+                    final long nanosBefore = System.nanoTime();
+                    try {
+                        flush0(omit);
+                    } catch (final IOException e) {
+                        // ignore
+                    }
+                    final long nanosAfter = System.nanoTime();
+                    nanoSeconds = (long) (0.8*nanoSeconds + 0.2*3*(nanosAfter-nanosBefore));
+                }
+            } catch (final InterruptedException e) {
+                return;
+            }
+        }
+
+        public void doFlush(final MappedByteBuffer omit) {
+            this.omitBuffer.set(omit);
+            if (this.doFlush.compareAndSet(false, true))
+                this.waitForFlushRequest.release();
+        }
+    }
 
     public class MultiplexOutputStream extends OutputStream {
 
@@ -607,8 +657,8 @@ public class MultiplexedFileWriter {
 
     private final ByteOrder byteOrder;
 
-    // each mapped slice has 1<<28 = 256M Bytes
-    protected static final int MAPPING_SLICE_SIZE_BITS = 28;
+    // each mapped slice has 1<<26 = 64M Bytes
+    protected static final int MAPPING_SLICE_SIZE_BITS = 26;
 
     public static final boolean is64bitVM =
            "64".equals(System.getProperty("sun.arch.data.model"))
@@ -619,6 +669,8 @@ public class MultiplexedFileWriter {
     private int fileLengthBlocks;
 
     private final boolean useMemoryMapping;
+    private final boolean autoFlush;
+    private final FlushThread autoFlushThread;
 
     private final AtomicInteger nextBlockAddr = new AtomicInteger(0);
 
@@ -658,10 +710,11 @@ public class MultiplexedFileWriter {
      * @param useMemoryMapping whether or not to use memory mapping (java.nio package)
      * @param byteOrder the byte order to use to write out block addresses (only used internally)
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs (e.g. FileNotFoundException)
      */
     public MultiplexedFileWriter(final File filename, final int blockSize,
-            final boolean useMemoryMapping, final ByteOrder byteOrder) throws IOException {
+            final boolean useMemoryMapping, final ByteOrder byteOrder, final boolean autoFlush)
+            throws IOException {
         if (filename == null)
             throw new NullPointerException();
         if ((blockSize & 0x3) != 0)
@@ -672,6 +725,13 @@ public class MultiplexedFileWriter {
             throw new IllegalArgumentException("1<<"+MAPPING_SLICE_SIZE_BITS+" must be divisible by the blockSize");
 
         this.useMemoryMapping = useMemoryMapping;
+        this.autoFlush = autoFlush;
+        if (autoFlush) {
+            this.autoFlushThread = new FlushThread();
+            this.autoFlushThread.start();
+        } else {
+            this.autoFlushThread = null;
+        }
         this.byteOrder = byteOrder;
         this.blockSize = blockSize;
 
@@ -689,6 +749,7 @@ public class MultiplexedFileWriter {
             65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
             EnumSet.of(Option.IDENTITY_COMPARISONS));
         openStreamsTmp.addRemoveStaleListener(new RemoveStaleListener<InnerOutputStream>() {
+            @Override
             public void removed(final InnerOutputStream removedValue) {
                 try {
                     removedValue.close();
@@ -711,10 +772,10 @@ public class MultiplexedFileWriter {
      *  <li>the native byte order of the system the VM is running on</li>
      * </ul>
      *
-     * @see #MultiplexedFileWriter(File, int, boolean, ByteOrder)
+     * @see #MultiplexedFileWriter(File, int, boolean, ByteOrder, boolean)
      */
     public MultiplexedFileWriter(final File file, final int blockSize) throws IOException {
-        this(file, blockSize, is64bitVM, ByteOrder.nativeOrder());
+        this(file, blockSize, is64bitVM, ByteOrder.nativeOrder(), is64bitVM);
     }
 
     /**
@@ -725,7 +786,7 @@ public class MultiplexedFileWriter {
      *  <li>the native byte order of the system the VM is running on</li>
      * </ul>
      *
-     * @see #MultiplexedFileWriter(File, int, boolean, ByteOrder)
+     * @see #MultiplexedFileWriter(File, int, boolean, ByteOrder, boolean)
      */
     public MultiplexedFileWriter(final File filename) throws IOException {
         this(filename, DEFAULT_BLOCK_SIZE);
@@ -844,6 +905,8 @@ public class MultiplexedFileWriter {
                         throw new IOException("Error mapping additional " + (1<<(MAPPING_SLICE_SIZE_BITS-20))
                                 + " MB of the trace file: " + e.getMessage());
                     }
+                    if (this.autoFlush)
+                        this.autoFlushThread.doFlush(this.fileMappings[mappingNr]);
                 }
             }
         }
@@ -863,6 +926,7 @@ public class MultiplexedFileWriter {
     }
 
     private final Object closingLock = new Object();
+
     public void close() throws IOException {
         checkException();
         synchronized (this.closingLock) {
@@ -876,6 +940,9 @@ public class MultiplexedFileWriter {
 
             this.streamDefs.close();
             int streamDefsStartBlock = this.streamDefs.innerOut.startBlockAddr;
+
+            if (this.autoFlush)
+                this.autoFlushThread.interrupt();
 
             int newBlockCount = this.nextBlockAddr.get();
             final int numFreeBlocks = this.freeBlocks.size();
@@ -928,30 +995,15 @@ public class MultiplexedFileWriter {
                 }
             }
 
-            // write some meta information to the file
-            final ByteBuffer header = ByteBuffer.allocate(headerSize);
-            header.putInt(MAGIC_HEADER);
-            header.putInt(this.blockSize);
-            header.put(this.byteOrder == ByteOrder.BIG_ENDIAN ? (byte)0 : (byte)1);
-            header.putInt(streamDefsStartBlock);
-            header.putLong(this.streamDefs.innerOut.dataLength);
-            header.position(0);
-            this.fileChannel.write(header, 0);
-
             // erase references to mapped file regions
             synchronized (this.fileMappingsLock) {
                 // bug 4938372 requires us to force writing out all changes in the mappings
                 while (true) {
                     try {
-                        for (final MappedByteBuffer m: this.fileMappings)
-                            if (m != null)
-                                m.force();
-                        // another ugly hack: force() DOES throw an IOException in some cases, but
-                        // the java compiler doesn't know since it is not annotated (bug 6539707)
-                        if (false)
-                            throw new IOException();
+                        flush0(null);
                         break;
                     } catch (final IOException e) {
+                        // bug 6539707: force() DOES throw an IOException in some cases
                         // ignore if it is that odd error message
                         if (e.getMessage() == null || !e.getMessage().contains("another process has locked"))
                             throw e;
@@ -981,6 +1033,16 @@ public class MultiplexedFileWriter {
                 }
             }
             memoryConsumingList = null;
+
+            // write some meta information to the file to make it valid
+            final ByteBuffer header = ByteBuffer.allocate(headerSize);
+            header.putInt(MAGIC_HEADER);
+            header.putInt(this.blockSize);
+            header.put(this.byteOrder == ByteOrder.BIG_ENDIAN ? (byte)0 : (byte)1);
+            header.putInt(streamDefsStartBlock);
+            header.putLong(this.streamDefs.innerOut.dataLength);
+            header.position(0);
+            this.fileChannel.write(header, 0);
 
             this.fileChannel.close();
             this.file.close();
@@ -1116,6 +1178,39 @@ public class MultiplexedFileWriter {
     }
     protected static int divUp(final int a, final int b) {
         return (a+b-1)/b;
+    }
+
+    /**
+     * Forces outstanding changes to be written to the disk. Most usefull if using
+     * memory mapping. This operation would force all changes in the memory sections
+     * to be written to the file.
+     *
+     * @throws  IOException
+     *          If some I/O error occurs
+     */
+    public void flush() throws IOException {
+        if (this.autoFlush) {
+            this.autoFlushThread.doFlush(null);
+        } else {
+            flush0(null);
+        }
+    }
+
+    protected void flush0(final MappedByteBuffer omit) throws IOException {
+        if (this.useMemoryMapping) {
+            MappedByteBuffer[] buffers;
+            synchronized (this.fileMappingsLock) {
+                buffers = new MappedByteBuffer[this.fileMappings.length];
+                System.arraycopy(this.fileMappings, 0, buffers, 0, this.fileMappings.length);
+            }
+            for (final MappedByteBuffer buf: buffers) {
+                if (buf != null && buf != omit) {
+                    buf.force();
+                }
+            }
+        } else {
+            this.fileChannel.force(false);
+        }
     }
 
 }

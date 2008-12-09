@@ -1,3 +1,13 @@
+/*
+ * @(#)ArrayList.java   1.56 06/04/21
+ *
+ * Copyright 2006 Sun Microsystems, Inc. All rights reserved.
+ * SUN PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ *
+ * THIS COPY IS HERE FOR NOT BEING INSTRUMENTED!
+ *
+ */
+
 package de.hammacher.util;
 
 import java.util.AbstractList;

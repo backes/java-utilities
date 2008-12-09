@@ -2,6 +2,7 @@ package de.hammacher.util;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 /**
  * A non-synchronized Class holding one integer value.
  *

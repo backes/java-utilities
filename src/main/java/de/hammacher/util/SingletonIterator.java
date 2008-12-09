@@ -17,10 +17,12 @@ public class SingletonIterator<T> implements ListIterator<T> {
         this.atBeginning = atBeginning;
     }
 
+    @Override
     public boolean hasNext() {
         return this.atBeginning;
     }
 
+    @Override
     public T next() {
         if (!this.atBeginning)
             throw new NoSuchElementException();
@@ -28,22 +30,27 @@ public class SingletonIterator<T> implements ListIterator<T> {
         return this.value;
     }
 
+    @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public void add(final T e) {
         throw new UnsupportedOperationException();
     }
 
+    @Override
     public boolean hasPrevious() {
         return !this.atBeginning;
     }
 
+    @Override
     public int nextIndex() {
         return this.atBeginning ? 0 : 1;
     }
 
+    @Override
     public T previous() {
         if (this.atBeginning)
             throw new NoSuchElementException();
@@ -51,10 +58,12 @@ public class SingletonIterator<T> implements ListIterator<T> {
         return this.value;
     }
 
+    @Override
     public int previousIndex() {
         return this.atBeginning ? -1 : 0;
     }
 
+    @Override
     public void set(final T e) {
         throw new UnsupportedOperationException();
     }

@@ -8,7 +8,8 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 
 /**
- * A Queue that internally stores the elements in an array.
+ * A Queue that internally stores the elements in an array (like ArrayDeque,
+ * but java 1.5 compatible).
  */
 public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
         Cloneable {
