@@ -749,7 +749,6 @@ public class MultiplexedFileWriter {
             65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
             EnumSet.of(Option.IDENTITY_COMPARISONS));
         openStreamsTmp.addRemoveStaleListener(new RemoveStaleListener<InnerOutputStream>() {
-            @Override
             public void removed(final InnerOutputStream removedValue) {
                 try {
                     removedValue.close();
