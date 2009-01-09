@@ -9,33 +9,44 @@
   <url></url>
 
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
+      <plugins>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <configuration>
+                  <source>1.5</source>
+                  <target>1.5</target>
+              </configuration>
+          </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-javadoc-plugin</artifactId>
+              <configuration>
+                  <source>1.5</source>
+              </configuration>
+              <executions>
+                  <execution>
+                      <id>attach-javadocs</id>
+                      <goals>
+                          <goal>jar</goal>
+                      </goals>
+                  </execution>
+              </executions>
+          </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-source-plugin</artifactId>
+              <executions>
+                  <execution>
+                      <id>attach-sources</id>
+                      <phase>verify</phase>
+                      <goals>
+                          <goal>jar</goal>
+                      </goals>
+                  </execution>
+              </executions>
+          </plugin>
+      </plugins>
   </build>
 
   <distributionManagement>
