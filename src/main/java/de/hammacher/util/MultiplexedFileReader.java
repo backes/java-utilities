@@ -179,9 +179,13 @@ public class MultiplexedFileReader {
         }
 
         public long getPosition() {
+            if (this.depth == 0)
+                return this.pos[0];
+
             long read = this.pos[0];
-            for (int i = 1; i <= this.depth; ++i)
+            for (int i = 1; i < this.depth; ++i)
                 read = MultiplexedFileReader.this.blockSize/4*read + this.pos[i];
+            read = MultiplexedFileReader.this.blockSize*read + this.pos[this.depth];
             return read;
         }
 
@@ -312,8 +316,10 @@ public class MultiplexedFileReader {
         } else {
             final ByteBuffer bbuf = ByteBuffer.wrap(buf, 0, this.blockSize);
             while (bbuf.hasRemaining()) {
-                this.fileChannel.read(bbuf,
-                        headerSize + ((blockAddr&POS_INT_MASK)*this.blockSize) + bbuf.position());
+            	if (this.fileChannel.read(bbuf,
+                        headerSize + ((blockAddr&POS_INT_MASK)*this.blockSize) + bbuf.position())
+                		< 0)
+            	throw new IOException("Unexpected EOF");
             }
         }
     }
@@ -327,8 +333,10 @@ public class MultiplexedFileReader {
             final ByteBuffer bbuf = ByteBuffer.allocate(this.blockSize);
             final IntBuffer intBuf = bbuf.order(this.byteOrder).asIntBuffer();
             while (bbuf.hasRemaining()) {
-                this.fileChannel.read(bbuf,
-                        headerSize + ((blockAddr&POS_INT_MASK)*this.blockSize) + bbuf.position());
+                if (this.fileChannel.read(bbuf,
+                        headerSize + ((blockAddr&POS_INT_MASK)*this.blockSize) + bbuf.position())
+                        < 0)
+                	throw new IOException("Unexpected EOF");
             }
             intBuf.get(buf, 0, this.blockSize/4);
         }

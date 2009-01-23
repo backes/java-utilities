@@ -10,6 +10,10 @@ public class StringCacheInput {
 
     private final List<String> strings = new ArrayList<String>();
 
+    public StringCacheInput() {
+    	this.strings.add(null);
+	}
+
     private int reverseId(final int id) {
         return id < 0 ? -2*id - 1 : 2*id;
     }

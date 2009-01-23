@@ -10,6 +10,10 @@ public class StringCacheOutput {
 
     private final Map<String, Integer> cache = new HashMap<String, Integer>();
 
+    public StringCacheOutput() {
+    	this.cache.put(null, 0);
+    }
+
     public void writeString(final String s, final DataOutputStream out) throws IOException {
         Integer id = this.cache.get(s);
         if (id == null) {
