@@ -222,10 +222,10 @@ public class MultiplexedFileReader {
 
     private static final int headerSize = 21; // bytes
 
-    private static final long POS_INT_MASK = 0xffffffffL;
+    private static final long POS_INT_MASK = 0x8fffffffL;
 
-    // each mapped slice has 1<<28 = 256M Bytes
-    protected static final int MAPPING_SLICE_SIZE_BITS = 28;
+    // each mapped slice has 1<<30 = 1GiBytes
+    protected static final int MAPPING_SLICE_SIZE_BITS = 30;
 
     public static final boolean is64bitVM =
            "64".equals(System.getProperty("sun.arch.data.model"))
@@ -238,6 +238,7 @@ public class MultiplexedFileReader {
     private final boolean useMemoryMapping;
 
     protected final FileChannel fileChannel;
+    private final MappedByteBuffer[] fileMappings;
     private final int numBlocksInFile;
 
     private final IntegerMap<StreamDef> streamDefs;
@@ -281,6 +282,21 @@ public class MultiplexedFileReader {
         if (numBlocksInFile0 > (1l << 32) || fileSize != (headerSize+numBlocksInFile0*this.blockSize))
             throw new IOException("File contains no MultiplexedFile (illegal number of blocks in file)");
         this.numBlocksInFile = (int) numBlocksInFile0;
+
+        // if file mapping is enabled, map all pieces of the file
+        if (this.useMemoryMapping) {
+        	int numMappings = (int) ((fileSize+((1<<MAPPING_SLICE_SIZE_BITS) - 1)) >> MAPPING_SLICE_SIZE_BITS);
+			this.fileMappings = new MappedByteBuffer[numMappings];
+			for (int i = 0; i < numMappings; ++i) {
+                final long sliceSize = Math.min(1 << MAPPING_SLICE_SIZE_BITS,
+                        ((long)this.numBlocksInFile * this.blockSize) - ((long)i << MAPPING_SLICE_SIZE_BITS));
+                assert sliceSize > 0;
+                this.fileMappings[i] = this.fileChannel.map(MapMode.READ_ONLY,
+                		headerSize+((long)i << MAPPING_SLICE_SIZE_BITS), sliceSize);
+			}
+        } else {
+        	this.fileMappings = null;
+        }
 
         // read the stream defs
         final MultiplexInputStream streamDefStream = new MultiplexInputStream(-1, streamDefsStartingBlock, streamDefsLength);
@@ -346,41 +362,11 @@ public class MultiplexedFileReader {
         final long position = (blockAddr&POS_INT_MASK)*this.blockSize;
         final int mappingNr = (int) (position >>> MAPPING_SLICE_SIZE_BITS);
         final int posInMapping = ((int)position) & ((1<<MAPPING_SLICE_SIZE_BITS)-1);
-        final ByteBuffer mapping = getMappedSlice(mappingNr);
-        final ByteBuffer duplicate = mapping.slice();
+        if (mappingNr < 0 || mappingNr >= this.fileMappings.length)
+        	throw new IOException("requesting non-existing part of the file");
+        final ByteBuffer duplicate = this.fileMappings[mappingNr].slice();
         duplicate.position(posInMapping);
         return duplicate;
-    }
-
-    private final Object fileMappingsLock = new Object();
-    private MappedByteBuffer[] fileMappings = new MappedByteBuffer[1];
-    private ByteBuffer getMappedSlice(final int mappingNr) throws IOException {
-        assert mappingNr >= 0;
-        if (this.fileMappings.length <= mappingNr || this.fileMappings[mappingNr] == null) {
-            synchronized (this.fileMappingsLock) {
-                if (this.fileMappings.length <= mappingNr) {
-                    final MappedByteBuffer[] newMappings = new MappedByteBuffer[2*Math.max(this.fileMappings.length, mappingNr+1)];
-                    System.arraycopy(this.fileMappings, 0, newMappings, 0, this.fileMappings.length);
-                    this.fileMappings = newMappings;
-                }
-                if (this.fileMappings[mappingNr] == null) {
-                    try {
-                        final long sliceSize = Math.min(1 << MAPPING_SLICE_SIZE_BITS,
-                                (this.numBlocksInFile * this.blockSize) - ((long)mappingNr << MAPPING_SLICE_SIZE_BITS));
-                        if (sliceSize <= 0)
-                            throw new AssertionError("request to map non-existing area of the file");
-                        this.fileMappings[mappingNr] = this.fileChannel.map(
-                                MapMode.READ_ONLY, headerSize+((long)mappingNr << MAPPING_SLICE_SIZE_BITS),
-                                sliceSize);
-                    } catch (final IOException e) {
-                        throw new IOException("Error mapping additional " + (1<<(MAPPING_SLICE_SIZE_BITS-20))
-                                + " MB of the trace file: " + e.getMessage());
-                    }
-                }
-            }
-        }
-
-        return this.fileMappings[mappingNr];
     }
 
     public Set<Integer> getStreamIds() {
