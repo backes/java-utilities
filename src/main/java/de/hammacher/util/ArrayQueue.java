@@ -188,8 +188,10 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
     }
 
     /**
+     * @see #poll()
+     * @see #pollFirst()
      * @throws NoSuchElementException
-     *             {@inheritDoc}
+     *             if the queue is empty
      */
     public E removeFirst() {
         final E x = pollFirst();
@@ -199,8 +201,9 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
     }
 
     /**
+     * @see #pollLast()
      * @throws NoSuchElementException
-     *             {@inheritDoc}
+     *             if the queue is empty
      */
     public E removeLast() {
         final E x = pollLast();
