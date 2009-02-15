@@ -4,6 +4,7 @@ import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
@@ -233,8 +234,8 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
     }
 
     /**
-     * @throws NoSuchElementException
-     *             {@inheritDoc}
+     * @see #peekFirst()
+     * @throws NoSuchElementException if the queue is empty
      */
     public E getFirst() {
         final E x = this.elements[this.head];
@@ -244,8 +245,8 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
     }
 
     /**
-     * @throws NoSuchElementException
-     *             {@inheritDoc}
+     * @see #peekLast()
+     * @throws NoSuchElementException if the queue is empty
      */
     public E getLast() {
         final E x = this.elements[(this.tail - 1) & (this.elements.length - 1)];
@@ -254,6 +255,9 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
         return x;
     }
 
+    /**
+     * @see #peek()
+     */
     public E peekFirst() {
         return this.elements[this.head]; // elements[head] is null if queue empty
     }
@@ -386,7 +390,6 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
      * @return the element at the front of this queue (which is the top of the
      *         stack represented by this queue)
      * @throws NoSuchElementException
-     *             {@inheritDoc}
      */
     public E pop() {
         return removeFirst();

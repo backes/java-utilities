@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
+public class LongMap<V> implements Map<Long, V>, Cloneable {
 
     /**
      * The default initial capacity - MUST be a power of two.
@@ -32,12 +32,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
     static final float DEFAULT_SWITCH_TO_LIST_RATIO = 0.3f;
 
     /**
-     * Will switch back (from list to map) when the ratio (size/highest_int) is below this threshold.
+     * Will switch back (from list to map) when the ratio (size/long_range) is below this threshold.
      */
     private final float switchToMapRatio;
 
     /**
-     * Will switch from map to list when the ratio (size/highest_int) is above this threshold.
+     * Will switch from map to list when the ratio (size/long_range) is above this threshold.
      */
     private final float switchToListRatio;
 
@@ -49,10 +49,10 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
     V[] list;
 
     // maintained when the map is used to notice when we can switch to list
-    private int minKey = Integer.MAX_VALUE;
-    private int maxKey = Integer.MIN_VALUE;
+    private long minKey = Long.MAX_VALUE;
+    private long maxKey = Long.MIN_VALUE;
 
-    int listOffset;
+    long listOffset;
 
     // this value is stored in the list to represent "null"
     private static final Object NULL_VALUE = new Object();
@@ -93,7 +93,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @throws IllegalArgumentException
      *             if the initial capacity is negative or the load factor is nonpositive
      */
-    public IntegerMap(final int initialCapacity, final float loadFactor, final float switchToMapRatio,
+    public LongMap(final int initialCapacity, final float loadFactor, final float switchToMapRatio,
             final float switchToListRatio) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
@@ -121,14 +121,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @throws IllegalArgumentException
      *             if the initial capacity is negative.
      */
-    public IntegerMap(final int initialMapCapacity) {
+    public LongMap(final int initialMapCapacity) {
         this(initialMapCapacity, DEFAULT_LOAD_FACTOR, DEFAULT_SWITCH_TO_MAP_RATIO, DEFAULT_SWITCH_TO_LIST_RATIO);
     }
 
     /**
      * Constructs an empty <tt>HashMap</tt> with the default initial capacity (16) and the default load factor (0.75).
      */
-    public IntegerMap() {
+    public LongMap() {
         this(DEFAULT_INITIAL_CAPACITY);
     }
 
@@ -167,19 +167,21 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @see #put(Object, Object)
      */
     public V get(final Object key) {
-        if (key instanceof Integer)
-            return get(((Integer) key).intValue());
+        if (key instanceof Long)
+            return get(((Long) key).intValue());
         return null;
     }
 
-    public V get(final int key) {
+    public V get(final long key) {
         if (this.list != null) {
-        	int offset = key - this.listOffset;
-            if (offset >= 0 && offset < this.list.length)
-                return this.list[offset] == getNullValue() ? null : this.list[offset];
+        	long offset = key - this.listOffset;
+            if (offset >= 0 && offset < this.list.length) {
+                V val = this.list[(int) offset];
+				return val == getNullValue() ? null : val;
+            }
             return null;
         }
-        final int index = key & (this.mapTable.length - 1);
+        final int index = (int)key & (this.mapTable.length - 1);
         for (Entry<V> e = this.mapTable[index]; e != null; e = e.next)
             if (key == e.key)
                 return e.value;
@@ -194,7 +196,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @return <tt>true</tt> if this map contains a mapping for the specified key.
      */
     public boolean containsKey(final Object key) {
-        return key instanceof Integer ? containsKey(((Integer)key).intValue()) : false;
+        return key instanceof Long ? containsKey(((Long)key).intValue()) : false;
     }
 
     /**
@@ -204,13 +206,13 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *            The key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified key.
      */
-    public boolean containsKey(final int key) {
+    public boolean containsKey(final long key) {
         if (this.list != null) {
-        	int offset = key - this.listOffset;
-            return offset >= 0 && offset < this.list.length && this.list[offset] != null;
+        	long offset = key - this.listOffset;
+            return offset >= 0 && offset < this.list.length && this.list[(int) offset] != null;
         }
 
-        final int index = key & (this.mapTable.length - 1);
+        final int index = (int)key & (this.mapTable.length - 1);
         for (Entry<V> e = this.mapTable[index]; e != null; e = e.next)
             if (e.key == key)
                 return true;
@@ -228,21 +230,21 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @return the previous value associated with <tt>key</tt>, or <tt>null</tt> if there was no mapping for
      *         <tt>key</tt>.
      */
-    public V put(final Integer key, final V value) {
+    public V put(final Long key, final V value) {
         return put(key.intValue(), value);
     }
 
-    public V put(final int key, final V value) {
+    public V put(final long key, final V value) {
         if (this.list != null) {
-        	int offset = key - this.listOffset;
+        	long offset = key - this.listOffset;
             if (offset < 0) {
             	if (this.size < this.switchToMapRatio * ((double)this.list.length - offset)) {
             		switchToMap();
                     // and continue with the map code below...
             	} else {
-            		int addBelow = Math.max(-2*offset, this.list.length/2);
-                    int newSize = this.list.length + addBelow;
-                    if (newSize < this.list.length || this.listOffset - addBelow > this.listOffset) {
+            		long addBelow = Math.max(-2*offset, this.list.length/2);
+                    long newSize = this.list.length + addBelow;
+                    if (newSize < 0 || newSize > Integer.MAX_VALUE || this.listOffset - addBelow > this.listOffset) {
                         newSize = Integer.MAX_VALUE;
                         addBelow = newSize - this.list.length;
                         if (addBelow + offset < 0)
@@ -250,10 +252,11 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                     }
                     this.listOffset -= addBelow;
                     offset = key - this.listOffset;
+                    assert offset >= 0 && offset < Integer.MAX_VALUE;
                     final V[] oldList = this.list;
-                    this.list = newArray(newSize);
-                    System.arraycopy(oldList, 0, this.list, addBelow, oldList.length);
-                    this.list[offset] = value == null ? getNullValue() : value;
+                    this.list = newArray((int) newSize);
+                    System.arraycopy(oldList, 0, this.list, (int) addBelow, oldList.length);
+                    this.list[(int) offset] = value == null ? getNullValue() : value;
                     this.minKey = Math.min(this.minKey, key);
                     ++this.size;
                     return null;
@@ -263,21 +266,21 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             		switchToMap();
                     // and continue with the map code below...
             	} else {
-                    int newSize = Math.max(offset+1, this.list.length * 3 / 2);
-                    if (newSize <= offset) {
+                    long newSize = Math.max(offset+1, this.list.length * 3 / 2);
+                    if (newSize <= offset || newSize > Integer.MAX_VALUE) {
                         newSize = Integer.MAX_VALUE;
                     }
                     final V[] oldList = this.list;
-                    this.list = newArray(newSize);
+                    this.list = newArray((int) newSize);
                     System.arraycopy(oldList, 0, this.list, 0, oldList.length);
-                    this.list[offset] = value == null ? getNullValue() : value;
+                    this.list[(int) offset] = value == null ? getNullValue() : value;
                     this.maxKey = Math.max(this.maxKey, key);
                     ++this.size;
                     return null;
             	}
             } else {
-                final V old = this.list[offset];
-                this.list[offset] = value == null ? getNullValue() : value;
+                final V old = this.list[(int) offset];
+                this.list[(int) offset] = value == null ? getNullValue() : value;
                 if (old == null) {
                     ++this.size;
                     this.minKey = Math.min(this.minKey, key);
@@ -288,7 +291,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         }
 
         // code for hashtable-lookup:
-        final int index = key & (this.mapTable.length - 1);
+        final int index = (int)key & (this.mapTable.length - 1);
         for (Entry<V> e = this.mapTable[index]; e != null; e = e.next) {
             if (e.key == key) {
                 final V oldValue = e.value;
@@ -312,16 +315,16 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         }
 
         this.mapTable = Entry.newArray(mapTableSize);
-    	this.minKey = Integer.MAX_VALUE;
-        this.maxKey = Integer.MIN_VALUE;
+    	this.minKey = Long.MAX_VALUE;
+        this.maxKey = Long.MIN_VALUE;
         for (int key = 0; key < this.list.length; ++key) {
             final V value = this.list[key];
             if (value == null)
                 continue;
-            int realKey = key + this.listOffset;
+            long realKey = key + this.listOffset;
             this.minKey = Math.min(this.minKey, realKey);
             this.maxKey = realKey;
-            final int index = realKey & (mapTableSize - 1);
+            final int index = (int)realKey & (mapTableSize - 1);
             this.mapTable[index] = new Entry<V>(realKey, value == getNullValue() ? null : value, this.mapTable[index]);
         }
         this.list = null;
@@ -333,7 +336,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * when the number of keys in this map reaches its threshold.
      *
      * If current capacity is MAXIMUM_CAPACITY, this method does not resize the map, but sets threshold to
-     * Integer.MAX_VALUE. This has the effect of preventing future calls.
+     * Long.MAX_VALUE. This has the effect of preventing future calls.
      *
      * @param newCapacity
      *            the new capacity, MUST be a power of two; must be greater than current capacity unless current
@@ -359,8 +362,8 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
     private void transferMap(final Entry<V>[] newTable) {
         final Entry<V>[] src = this.mapTable;
         final int newCapacity = newTable.length;
-        this.minKey = Integer.MAX_VALUE;
-        this.maxKey = Integer.MIN_VALUE;
+        this.minKey = Long.MAX_VALUE;
+        this.maxKey = Long.MIN_VALUE;
         for (int j = 0; j < src.length; j++) {
             Entry<V> e = src[j];
             if (e != null) {
@@ -369,7 +372,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                 	this.minKey = Math.min(this.minKey, e.key);
                 	this.maxKey = Math.max(this.maxKey, e.key);
                     final Entry<V> next = e.next;
-                    final int newIndex = e.key & (newCapacity - 1);
+                    final int newIndex = (int)e.key & (newCapacity - 1);
                     e.next = newTable[newIndex];
                     newTable[newIndex] = e;
                     e = next;
@@ -387,8 +390,8 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @throws NullPointerException
      *             if the specified map is null
      */
-    public void putAll(final Map<? extends Integer, ? extends V> m) {
-        for (final Map.Entry<? extends Integer, ? extends V> e : m.entrySet())
+    public void putAll(final Map<? extends Long, ? extends V> m) {
+        for (final Map.Entry<? extends Long, ? extends V> e : m.entrySet())
             put(e.getKey(), e.getValue());
     }
 
@@ -402,25 +405,25 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *         <tt>null</tt> with <tt>key</tt>.)
      */
     public V remove(final Object key) {
-        if (key instanceof Integer)
-            return remove(((Integer) key).intValue());
+        if (key instanceof Long)
+            return remove(((Long) key).intValue());
         return null;
     }
 
-    public V remove(final int key) {
+    public V remove(final long key) {
         if (this.list != null) {
-        	int offset = key - this.listOffset;
+        	long offset = key - this.listOffset;
             if (offset < 0 || offset >= this.list.length)
                 return null;
-            final V old = this.list[offset];
+            final V old = this.list[(int) offset];
             if (old != null) {
-                this.list[offset] = null;
+                this.list[(int) offset] = null;
                 --this.size;
             }
             return old == getNullValue() ? null : old;
         }
 
-        final int index = key & (this.mapTable.length - 1);
+        final int index = (int)key & (this.mapTable.length - 1);
         Entry<V> prev = this.mapTable[index];
         Entry<V> e = prev;
 
@@ -453,8 +456,8 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         } else {
             this.mapTable = Entry.newArray(this.mapTable.length);
         }
-        this.minKey = Integer.MAX_VALUE;
-        this.maxKey = Integer.MIN_VALUE;
+        this.minKey = Long.MAX_VALUE;
+        this.maxKey = Long.MIN_VALUE;
     }
 
     /**
@@ -487,9 +490,9 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         return false;
     }
 
-    private static final class Entry<V> implements Map.Entry<Integer, V> {
+    private static final class Entry<V> implements Map.Entry<Long, V> {
 
-        final int key;
+        final long key;
 
         V value;
 
@@ -498,7 +501,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         /**
          * Creates new entry.
          */
-        Entry(final int key, final V value, final Entry<V> next) {
+        Entry(final long key, final V value, final Entry<V> next) {
             this.key = key;
             this.value = value;
             this.next = next;
@@ -509,7 +512,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         	return new Entry[length];
 		}
 
-		public final Integer getKey() {
+		public final Long getKey() {
             return this.key;
         }
 
@@ -528,7 +531,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             if (!(o instanceof Map.Entry))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
-            final Integer k1 = getKey();
+            final Long k1 = getKey();
             final Object k2 = e.getKey();
             if (k1 == null ? k2 == null : k1.equals(k2)) {
                 final Object v1 = getValue();
@@ -541,7 +544,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
         @Override
         public final int hashCode() {
-            return this.key ^ (this.value == null ? 0 : this.value.hashCode());
+            return (int)this.key ^ (int)(this.key >>> 32) ^ (this.value == null ? 0 : this.value.hashCode());
         }
 
         @Override
@@ -555,7 +558,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * Adds a new entry with the specified key, value and hash code to the specified bucket. It is the responsibility of
      * this method to resize the table if appropriate.
      */
-    private void addEntry(final int key, final V value, final int index) {
+    private void addEntry(final long key, final V value, final int index) {
         this.mapTable[index] = new Entry<V>(key, value, this.mapTable[index]);
         ++this.size;
         this.minKey = Math.min(this.minKey, key);
@@ -568,26 +571,26 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
     private void switchToList() {
         ++this.modCount;
-        int neededSize = this.maxKey - this.minKey + 1;
-        if (neededSize <= 0)
+        long neededSize = this.maxKey - this.minKey + 1;
+        if (neededSize <= 0 || neededSize > Integer.MAX_VALUE)
         	throw new RuntimeException("map too big");
         // reserve 1/4 space below, but only if no underflow happens
-        int spaceBelow = neededSize / 4;
-        if (this.minKey < 0 && this.minKey - Integer.MIN_VALUE < spaceBelow)
-        	spaceBelow = this.minKey - Integer.MIN_VALUE;
+        long spaceBelow = neededSize / 4;
+        if (this.minKey < 0 && this.minKey - Long.MIN_VALUE < spaceBelow)
+        	spaceBelow = this.minKey - Long.MIN_VALUE;
         this.listOffset = this.minKey - spaceBelow;
-        // check if the offset of maxKey is still positive (no overflow)
-        if (this.maxKey - this.listOffset < 0) {
+        // check if the offset of maxKey is in integer range
+        if (this.maxKey - this.listOffset >= Integer.MAX_VALUE) {
         	this.listOffset = this.minKey;
         	spaceBelow = 0;
         }
-        int realSize = neededSize + spaceBelow + (neededSize / 4);
-        if (realSize < 0)
+        long realSize = neededSize + spaceBelow + (neededSize / 4);
+        if (realSize < 0 || realSize > Integer.MAX_VALUE)
         	realSize = Integer.MAX_VALUE;
 
-        this.list = newArray(realSize);
-        this.minKey = Integer.MAX_VALUE;
-        this.maxKey = Integer.MIN_VALUE;
+        this.list = newArray((int) realSize);
+        this.minKey = Long.MAX_VALUE;
+        this.maxKey = Long.MIN_VALUE;
         for (int j = 0; j < this.mapTable.length; j++) {
             Entry<V> e = this.mapTable[j];
             if (e != null) {
@@ -595,7 +598,8 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                 do {
                 	this.minKey = Math.min(this.minKey, e.key);
                 	this.maxKey = Math.max(this.maxKey, e.key);
-                	int offset = e.key - this.listOffset;
+                	assert e.key - this.listOffset >= 0 && e.key - this.listOffset < Integer.MAX_VALUE;
+                	int offset = (int)(e.key - this.listOffset);
 	                if (offset < 0 || offset >= this.list.length)
 	                    throw new ConcurrentModificationException();
 	                this.list[offset] = e.value == null ? getNullValue() : e.value;
@@ -607,7 +611,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         ++this.modCount;
     }
 
-    private class MapIterator implements Iterator<Map.Entry<Integer, V>> {
+    private class MapIterator implements Iterator<Map.Entry<Long, V>> {
         Entry<V> next; // next entry to return
 
         int expectedModCount; // For fast-fail
@@ -617,9 +621,9 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         Entry<V> current; // current entry
 
         MapIterator() {
-            this.expectedModCount = IntegerMap.this.modCount;
-            if (IntegerMap.this.size > 0) { // advance to first entry
-                final Entry<V>[] t = IntegerMap.this.mapTable;
+            this.expectedModCount = LongMap.this.modCount;
+            if (LongMap.this.size > 0) { // advance to first entry
+                final Entry<V>[] t = LongMap.this.mapTable;
                 while (this.index < t.length && (this.next = t[this.index++]) == null) {
                     continue;
                 }
@@ -627,14 +631,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         }
 
         public Entry<V> next() {
-            if (IntegerMap.this.modCount != this.expectedModCount)
+            if (LongMap.this.modCount != this.expectedModCount)
                 throw new ConcurrentModificationException();
             final Entry<V> e = this.next;
             if (e == null)
                 throw new NoSuchElementException();
 
             if ((this.next = e.next) == null) {
-                final Entry<V>[] t = IntegerMap.this.mapTable;
+                final Entry<V>[] t = LongMap.this.mapTable;
                 while (this.index < t.length && (this.next = t[this.index++]) == null)
                     continue;
             }
@@ -649,12 +653,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         public void remove() {
             if (this.current == null)
                 throw new IllegalStateException();
-            if (IntegerMap.this.modCount != this.expectedModCount)
+            if (LongMap.this.modCount != this.expectedModCount)
                 throw new ConcurrentModificationException();
-            final int k = this.current.key;
+            final long k = this.current.key;
             this.current = null;
-            IntegerMap.this.remove(k);
-            this.expectedModCount = IntegerMap.this.modCount;
+            LongMap.this.remove(k);
+            this.expectedModCount = LongMap.this.modCount;
         }
 
     }
@@ -667,60 +671,60 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * <tt>Iterator.remove</tt>, <tt>Set.remove</tt>, <tt>removeAll</tt>, <tt>retainAll</tt>, and
      * <tt>clear</tt> operations. It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
      */
-    public Set<Integer> keySet() {
-        return new AbstractSet<Integer>() {
+    public Set<Long> keySet() {
+        return new AbstractSet<Long>() {
             @Override
-            public Iterator<Integer> iterator() {
-                if (IntegerMap.this.list != null) {
-                    return new Iterator<Integer>() {
+            public Iterator<Long> iterator() {
+                if (LongMap.this.list != null) {
+                    return new Iterator<Long>() {
 
                         int nextCursor = getNextCursor(0);
 
-                        int expectedModCount = IntegerMap.this.modCount;
+                        int expectedModCount = LongMap.this.modCount;
 
                         int lastKey = -1;
 
                         private int getNextCursor(final int i) {
                             int next = i;
-                            while (next < IntegerMap.this.list.length && IntegerMap.this.list[next] == null)
+                            while (next < LongMap.this.list.length && LongMap.this.list[next] == null)
                                 ++next;
                             return next;
                         }
 
                         public boolean hasNext() {
-                            if (this.expectedModCount != IntegerMap.this.modCount)
+                            if (this.expectedModCount != LongMap.this.modCount)
                                 throw new ConcurrentModificationException();
-                            return this.nextCursor < IntegerMap.this.list.length;
+                            return this.nextCursor < LongMap.this.list.length;
                         }
 
-                        public Integer next() {
+                        public Long next() {
                             if (!hasNext()) // throws ConcurrentModificationException
                                 throw new NoSuchElementException();
                             this.lastKey = this.nextCursor;
                             this.nextCursor = getNextCursor(this.nextCursor + 1);
-                            return this.lastKey + IntegerMap.this.listOffset;
+                            return this.lastKey + LongMap.this.listOffset;
                         }
 
                         public void remove() {
-                            if (this.expectedModCount != IntegerMap.this.modCount)
+                            if (this.expectedModCount != LongMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (this.lastKey == -1)
                                 throw new IllegalStateException();
-                            IntegerMap.this.remove(this.lastKey + IntegerMap.this.listOffset);
+                            LongMap.this.remove(this.lastKey + LongMap.this.listOffset);
                         }
 
                     };
                 }
                 // else:
 
-                return new Iterator<Integer>() {
-                    private final Iterator<Map.Entry<Integer, V>> i = new MapIterator();
+                return new Iterator<Long>() {
+                    private final Iterator<Map.Entry<Long, V>> i = new MapIterator();
 
                     public boolean hasNext() {
                         return this.i.hasNext();
                     }
 
-                    public Integer next() {
+                    public Long next() {
                         return this.i.next().getKey();
                     }
 
@@ -732,12 +736,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
             @Override
             public int size() {
-                return IntegerMap.this.size();
+                return LongMap.this.size();
             }
 
             @Override
             public boolean contains(final Object k) {
-                return IntegerMap.this.containsKey(k);
+                return LongMap.this.containsKey(k);
             }
         };
     }
@@ -755,26 +759,26 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         return new AbstractCollection<V>() {
             @Override
             public Iterator<V> iterator() {
-                if (IntegerMap.this.list != null) {
+                if (LongMap.this.list != null) {
                     return new Iterator<V>() {
 
                         int nextCursor = getNextCursor(0);
 
-                        int expectedModCount = IntegerMap.this.modCount;
+                        int expectedModCount = LongMap.this.modCount;
 
                         int lastKey = -1;
 
                         private int getNextCursor(final int i) {
                             int next = i;
-                            while (next < IntegerMap.this.list.length && IntegerMap.this.list[next] == null)
+                            while (next < LongMap.this.list.length && LongMap.this.list[next] == null)
                                 ++next;
                             return next;
                         }
 
                         public boolean hasNext() {
-                            if (this.expectedModCount != IntegerMap.this.modCount)
+                            if (this.expectedModCount != LongMap.this.modCount)
                                 throw new ConcurrentModificationException();
-                            return this.nextCursor < IntegerMap.this.list.length;
+                            return this.nextCursor < LongMap.this.list.length;
                         }
 
                         @SuppressWarnings("synthetic-access")
@@ -783,16 +787,16 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                                 throw new NoSuchElementException();
                             this.lastKey = this.nextCursor;
                             this.nextCursor = getNextCursor(this.nextCursor + 1);
-                            V val = IntegerMap.this.list[this.lastKey];
+                            V val = LongMap.this.list[this.lastKey];
 							return val == getNullValue() ? null : val;
                         }
 
                         public void remove() {
-                            if (this.expectedModCount != IntegerMap.this.modCount)
+                            if (this.expectedModCount != LongMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (this.lastKey == -1)
                                 throw new IllegalStateException();
-                            IntegerMap.this.remove(this.lastKey + IntegerMap.this.listOffset);
+                            LongMap.this.remove(this.lastKey + LongMap.this.listOffset);
                         }
 
                     };
@@ -800,7 +804,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                 // else:
 
                 return new Iterator<V>() {
-                    private final Iterator<Map.Entry<Integer, V>> i = new MapIterator();
+                    private final Iterator<Map.Entry<Long, V>> i = new MapIterator();
 
                     public boolean hasNext() {
                         return this.i.hasNext();
@@ -818,12 +822,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
             @Override
             public int size() {
-                return IntegerMap.this.size();
+                return LongMap.this.size();
             }
 
             @Override
             public boolean contains(final Object v) {
-                return IntegerMap.this.containsValue(v);
+                return LongMap.this.containsValue(v);
             }
         };
     }
@@ -839,33 +843,33 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *
      * @return a set view of the mappings contained in this map
      */
-    public Set<Map.Entry<Integer, V>> entrySet() {
+    public Set<Map.Entry<Long, V>> entrySet() {
         return new EntrySet();
     }
 
-    final class EntrySet implements Set<Map.Entry<Integer, V>> {
+    final class EntrySet implements Set<Map.Entry<Long, V>> {
 
-        public Iterator<Map.Entry<Integer, V>> iterator() {
-            if (IntegerMap.this.list != null) {
-                return new Iterator<Map.Entry<Integer, V>>() {
+        public Iterator<Map.Entry<Long, V>> iterator() {
+            if (LongMap.this.list != null) {
+                return new Iterator<Map.Entry<Long, V>>() {
 
                     int nextCursor = getNextCursor(0);
 
-                    int expectedModCount = IntegerMap.this.modCount;
+                    int expectedModCount = LongMap.this.modCount;
 
                     int lastKey = -1;
 
                     private int getNextCursor(final int i) {
                         int next = i;
-                        while (next < IntegerMap.this.list.length && IntegerMap.this.list[next] == null)
+                        while (next < LongMap.this.list.length && LongMap.this.list[next] == null)
                             ++next;
                         return next;
                     }
 
                     public boolean hasNext() {
-                        if (this.expectedModCount != IntegerMap.this.modCount)
+                        if (this.expectedModCount != LongMap.this.modCount)
                             throw new ConcurrentModificationException();
-                        return this.nextCursor < IntegerMap.this.list.length;
+                        return this.nextCursor < LongMap.this.list.length;
                     }
 
                     @SuppressWarnings("synthetic-access")
@@ -874,16 +878,16 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                             throw new NoSuchElementException();
                         this.lastKey = this.nextCursor;
                         this.nextCursor = getNextCursor(this.nextCursor + 1);
-                        V val = IntegerMap.this.list[this.lastKey];
-						return new Entry<V>(this.lastKey + IntegerMap.this.listOffset, val == getNullValue() ? null : val, null);
+                        V val = LongMap.this.list[this.lastKey];
+						return new Entry<V>(this.lastKey + LongMap.this.listOffset, val == getNullValue() ? null : val, null);
                     }
 
                     public void remove() {
-                        if (this.expectedModCount != IntegerMap.this.modCount)
+                        if (this.expectedModCount != LongMap.this.modCount)
                             throw new ConcurrentModificationException();
                         if (this.lastKey == -1)
                             throw new IllegalStateException();
-                        IntegerMap.this.remove(this.lastKey + IntegerMap.this.listOffset);
+                        LongMap.this.remove(this.lastKey + LongMap.this.listOffset);
                     }
 
                 };
@@ -907,24 +911,24 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             	V val = get(e.key);
             	if (val == null || !val.equals(e.getValue()))
             		return false;
-                return IntegerMap.this.remove(e.key) != null;
+                return LongMap.this.remove(e.key) != null;
             }
             return false;
         }
 
         public int size() {
-            return IntegerMap.this.size;
+            return LongMap.this.size;
         }
 
         public void clear() {
-            IntegerMap.this.clear();
+            LongMap.this.clear();
         }
 
-        public boolean add(final java.util.Map.Entry<Integer, V> e) {
+        public boolean add(final java.util.Map.Entry<Long, V> e) {
             throw new UnsupportedOperationException();
         }
 
-        public boolean addAll(final Collection<? extends Map.Entry<Integer, V>> c) {
+        public boolean addAll(final Collection<? extends Map.Entry<Long, V>> c) {
             throw new UnsupportedOperationException();
         }
 
@@ -936,7 +940,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         }
 
         public boolean isEmpty() {
-            return IntegerMap.this.isEmpty();
+            return LongMap.this.isEmpty();
         }
 
         public boolean removeAll(final Collection<?> c) {
@@ -948,7 +952,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         }
 
         public boolean retainAll(final Collection<?> c) {
-            final Iterator<Map.Entry<Integer, V>> e = iterator();
+            final Iterator<Map.Entry<Long, V>> e = iterator();
             boolean changed = false;
             while (e.hasNext())
                 if (!c.contains(e.next())) {
@@ -960,7 +964,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
         public Object[] toArray() {
             final Object[] r = new Object[size()];
-            final Iterator<Map.Entry<Integer, V>> it = iterator();
+            final Iterator<Map.Entry<Long, V>> it = iterator();
             for (int i = 0; i < r.length; i++) {
                 if (!it.hasNext()) { // fewer elements than expected
                     final Object[] r2 = new Object[i];
@@ -976,7 +980,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         public <T> T[] toArray(final T[] a) {
             final T[] r = a.length >= size() ? a : (T[]) java.lang.reflect.Array.newInstance(a.getClass()
                     .getComponentType(), size());
-            final Iterator<Map.Entry<Integer, V>> it = iterator();
+            final Iterator<Map.Entry<Long, V>> it = iterator();
 
             for (int i = 0; i < r.length; i++) {
                 if (!it.hasNext()) { // fewer elements than expected
@@ -1038,15 +1042,15 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
     @Override
     public String toString() {
-        final Iterator<Map.Entry<Integer, V>> i = entrySet().iterator();
+        final Iterator<Map.Entry<Long, V>> i = entrySet().iterator();
         if (!i.hasNext())
             return "{}";
 
         final StringBuilder sb = new StringBuilder();
         sb.append('{');
         while (true) {
-            final Map.Entry<Integer, V> e = i.next();
-            final Integer key = e.getKey();
+            final Map.Entry<Long, V> e = i.next();
+            final Long key = e.getKey();
             final V value = e.getValue();
             sb.append(key).append('=').append(value == this ? "(this Map)" : value);
             if (!i.hasNext())
@@ -1058,7 +1062,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
     @Override
     public int hashCode() {
         int h = 0;
-        final Iterator<Map.Entry<Integer, V>> i = entrySet().iterator();
+        final Iterator<Map.Entry<Long, V>> i = entrySet().iterator();
         while (i.hasNext())
             h += i.next().hashCode();
         return h;
@@ -1076,10 +1080,10 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return false;
 
         try {
-            final Iterator<Map.Entry<Integer, V>> i = entrySet().iterator();
+            final Iterator<Map.Entry<Long, V>> i = entrySet().iterator();
             while (i.hasNext()) {
-                final Map.Entry<Integer, V> e = i.next();
-                final Integer key = e.getKey();
+                final Map.Entry<Long, V> e = i.next();
+                final Long key = e.getKey();
                 final V value = e.getValue();
                 if (value == null ? m.get(key) != null : !value.equals(m.get(key)))
                     return false;
@@ -1095,10 +1099,10 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 
     @SuppressWarnings("unchecked")
 	@Override
-    public IntegerMap<V> clone() {
-        IntegerMap<V> clone;
+    public LongMap<V> clone() {
+        LongMap<V> clone;
         try {
-            clone = (IntegerMap<V>) super.clone();
+            clone = (LongMap<V>) super.clone();
         } catch (final CloneNotSupportedException e) {
             // this should never occur since we are cloneable!!
             throw new RuntimeException(e);
