@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.maps;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;

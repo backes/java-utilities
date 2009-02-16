@@ -6,6 +6,8 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import de.hammacher.util.maps.IntegerMap;
+
 
 public class IntegerMapPerformance {
 

@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import de.hammacher.util.maps.IntegerMap;
+
 public class IntegerMapTest {
 
 	private static interface IntGenerator {

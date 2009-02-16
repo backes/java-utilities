@@ -12,6 +12,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.Set;
 
+import de.hammacher.util.maps.IntegerMap;
+import de.hammacher.util.streams.MyDataInputStream;
+
 public class MultiplexedFileReader {
 
     private static class StreamDef {

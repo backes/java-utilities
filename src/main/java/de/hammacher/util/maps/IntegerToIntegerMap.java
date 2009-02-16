@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.maps;
 
 import java.util.AbstractCollection;
 import java.util.AbstractSet;
@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
+public class IntegerToIntegerMap implements Map<Integer, Integer>, Cloneable {
 
     /**
      * The default initial capacity - MUST be a power of two.
@@ -46,7 +46,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      */
     Entry[] mapTable;
 
-    long[] list = null;
+    int[] list = null;
 
     boolean[] listEntriesWithZeroValue = null;
 
@@ -81,7 +81,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      */
     volatile int modCount;
 
-    protected final long defaultValue;
+    protected final int defaultValue;
 
     /**
      * Constructs an empty <tt>HashMap</tt> with the specified initial capacity and load factor.
@@ -93,8 +93,8 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * @throws IllegalArgumentException
      *             if the initial capacity is negative or the load factor is nonpositive
      */
-    public IntegerToLongMap(final int initialCapacity, final float loadFactor, final float switchToMapRatio,
-            final float switchToListRatio, final long defaultValue) {
+    public IntegerToIntegerMap(final int initialCapacity, final float loadFactor, final float switchToMapRatio,
+            final float switchToListRatio, final int defaultValue) {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
         final int initCapacity = initialCapacity > MAXIMUM_CAPACITY ? MAXIMUM_CAPACITY : initialCapacity;
@@ -122,14 +122,14 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * @throws IllegalArgumentException
      *             if the initial capacity is negative.
      */
-    public IntegerToLongMap(final int initialMapCapacity) {
+    public IntegerToIntegerMap(final int initialMapCapacity) {
         this(initialMapCapacity, DEFAULT_LOAD_FACTOR, DEFAULT_SWITCH_TO_MAP_RATIO, DEFAULT_SWITCH_TO_LIST_RATIO, 0);
     }
 
     /**
      * Constructs an empty <tt>HashMap</tt> with the default initial capacity (16) and the default load factor (0.75).
      */
-    public IntegerToLongMap() {
+    public IntegerToIntegerMap() {
         this(DEFAULT_INITIAL_CAPACITY);
     }
 
@@ -156,16 +156,16 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * mapping for the key.
      * Returns <code>null</code> if the key is not of type Integer;
      */
-    public Long get(final Object key) {
+    public Integer get(final Object key) {
         if (key instanceof Integer)
-            return getLong(((Integer) key).intValue());
+            return getInt(((Integer) key).intValue());
         return null;
     }
 
-    public long getLong(final int key) {
+    public int getInt(final int key) {
         if (this.list != null) {
             if (key >= 0 && key < this.list.length) {
-                final long val = this.list[key];
+                final int val = this.list[key];
                 if (val == 0 && (this.listEntriesWithZeroValue == null || !this.listEntriesWithZeroValue[key]))
                     return this.defaultValue;
                 return val;
@@ -203,7 +203,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
     final protected Entry getEntry(final int key) {
         if (this.list != null) {
             if (key >= 0 && key < this.list.length) {
-                final long val = this.list[key];
+                final int val = this.list[key];
                 if (val == 0 && (this.listEntriesWithZeroValue == null || !this.listEntriesWithZeroValue[key]))
                     return null;
                 return new Entry(key, val, null);
@@ -228,14 +228,14 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * @return the previous value associated with <tt>key</tt>, or <tt>defaultValue</tt> if there was no mapping for
      *         <tt>key</tt>.
      */
-    public Long put(final Integer key, final Long value) {
-        return put(key.intValue(), value.longValue());
+    public Integer put(final Integer key, final Integer value) {
+        return put(key.intValue(), value.intValue());
     }
 
-    public long put(final int key, final long value) {
+    public int put(final int key, final int value) {
         if (this.list != null) {
             if (key >= 0 && key < this.list.length) {
-                long old = this.list[key];
+                int old = this.list[key];
                 this.list[key] = value;
                 if (old == 0) {
                     if (this.listEntriesWithZeroValue == null || !this.listEntriesWithZeroValue[key]) {
@@ -258,8 +258,8 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
                 // and continue with the map code below...
             } else {
                 final int newSize = 3 * key / 2 + 1;
-                final long[] oldList = this.list;
-                this.list = new long[newSize];
+                final int[] oldList = this.list;
+                this.list = new int[newSize];
                 System.arraycopy(oldList, 0, this.list, 0, oldList.length);
                 if (this.listEntriesWithZeroValue != null) {
                     final boolean[] oldListEntries = this.listEntriesWithZeroValue;
@@ -279,7 +279,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         final int index = key & (this.mapTable.length - 1);
         for (Entry e = this.mapTable[index]; e != null; e = e.next) {
             if (e.key == key) {
-                final long oldValue = e.value;
+                final int oldValue = e.value;
                 e.value = value;
                 return oldValue;
             }
@@ -299,7 +299,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         this.mapTable = new Entry[mapTableSize];
         boolean minSet = false;
         for (int key = 0; key < this.list.length; ++key) {
-            final long value = this.list[key];
+            final int value = this.list[key];
             if (value == 0 && (
                     this.listEntriesWithZeroValue == null
                     || !this.listEntriesWithZeroValue[key]))
@@ -372,8 +372,8 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * @throws NullPointerException
      *             if the specified map is null
      */
-    public void putAll(final Map<? extends Integer, ? extends Long> m) {
-        for (final Map.Entry<? extends Integer, ? extends Long> e : m.entrySet())
+    public void putAll(final Map<? extends Integer, ? extends Integer> m) {
+        for (final Map.Entry<? extends Integer, ? extends Integer> e : m.entrySet())
             put(e.getKey(), e.getValue());
     }
 
@@ -385,17 +385,17 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * @return the previous value associated with <tt>key</tt>, or <tt>defaultValue</tt> if there was no mapping for
      *         <tt>key</tt>. A <tt>null</tt> is returned if the key is not of type Integer.
      */
-    public Long remove(final Object key) {
+    public Integer remove(final Object key) {
         if (key instanceof Integer)
             return remove(((Integer) key).intValue());
         return null;
     }
 
-    public long remove(final int key) {
+    public int remove(final int key) {
         if (this.list != null) {
             if (key < 0 || key >= this.list.length)
                 return this.defaultValue;
-            final long old = this.list[key];
+            final int old = this.list[key];
             if (old != 0 || (this.listEntriesWithZeroValue != null && this.listEntriesWithZeroValue[key])) {
                 this.size--;
             }
@@ -451,7 +451,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         this.modCount++;
         this.size = 0;
         if (this.list != null) {
-            this.list = new long[this.list.length];
+            this.list = new int[this.list.length];
             this.listEntriesWithZeroValue = null;
         } else {
             this.mapTable = new Entry[this.mapTable.length];
@@ -483,7 +483,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
                             return true;
                 return false;
             }
-            for (final long val : this.list)
+            for (final int val : this.list)
                 if (val == value)
                     return true;
             return false;
@@ -497,10 +497,48 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         return false;
     }
 
+    public int incrementAndGet(final int key, final int addValue) {
+        if (this.list != null) {
+            if (key >= 0 && key < this.list.length) {
+                final int val = this.list[key];
+                if (val == 0) {
+                    if (this.listEntriesWithZeroValue != null && this.listEntriesWithZeroValue[key]) {
+                        this.listEntriesWithZeroValue[key] = false;
+                        this.list[key] = addValue;
+                        return addValue;
+                    }
+                    // otherwise go to the put below
+                } else {
+                    final int newVal = val + addValue;
+                    if (newVal == 0) {
+                        if (this.listEntriesWithZeroValue == null)
+                            this.listEntriesWithZeroValue = new boolean[this.list.length];
+                        this.listEntriesWithZeroValue[key] = true;
+                    }
+                    this.list[key] = newVal;
+                    return newVal;
+                }
+            }
+
+        } else {
+
+            final int index = key & (this.mapTable.length - 1);
+            for (Entry e = this.mapTable[index]; e != null; e = e.next) {
+                if (e.key == key) {
+                    e.value += addValue;
+                    return e.value;
+                }
+            }
+        }
+        final int newValue = this.defaultValue + addValue;
+        put(key, newValue);
+        return newValue;
+    }
+
     public void increment(final int key) {
         if (this.list != null) {
             if (key >= 0 && key < this.list.length) {
-                long val = this.list[key];
+                int val = this.list[key];
                 if (val == 0) {
                     if (this.listEntriesWithZeroValue != null && this.listEntriesWithZeroValue[key]) {
                         this.listEntriesWithZeroValue[key] = false;
@@ -533,56 +571,18 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         put(key, this.defaultValue + 1);
     }
 
-    public long incrementAndGet(final int key, final long addValue) {
-        if (this.list != null) {
-            if (key >= 0 && key < this.list.length) {
-                final long val = this.list[key];
-                if (val == 0) {
-                    if (this.listEntriesWithZeroValue != null && this.listEntriesWithZeroValue[key]) {
-                        this.listEntriesWithZeroValue[key] = false;
-                        this.list[key] = addValue;
-                        return addValue;
-                    }
-                    // otherwise go to the put below
-                } else {
-                    final long newVal = val + addValue;
-                    if (newVal == 0) {
-                        if (this.listEntriesWithZeroValue == null)
-                            this.listEntriesWithZeroValue = new boolean[this.list.length];
-                        this.listEntriesWithZeroValue[key] = true;
-                    }
-                    this.list[key] = newVal;
-                    return newVal;
-                }
-            }
-
-        } else {
-
-            final int index = key & (this.mapTable.length - 1);
-            for (Entry e = this.mapTable[index]; e != null; e = e.next) {
-                if (e.key == key) {
-                    e.value += addValue;
-                    return e.value;
-                }
-            }
-        }
-        final long newValue = this.defaultValue + addValue;
-        put(key, newValue);
-        return newValue;
-    }
-
-    private static final class Entry implements Map.Entry<Integer, Long> {
+    private static final class Entry implements Map.Entry<Integer, Integer> {
 
         final int key;
 
-        long value;
+        int value;
 
         Entry next;
 
         /**
          * Creates new entry.
          */
-        Entry(final int key, final long value, final Entry next) {
+        Entry(final int key, final int value, final Entry next) {
             this.key = key;
             this.value = value;
             this.next = next;
@@ -592,12 +592,12 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
             return this.key;
         }
 
-        public final Long getValue() {
+        public final Integer getValue() {
             return this.value;
         }
 
-        public final Long setValue(final Long newValue) {
-            final long oldValue = this.value;
+        public final Integer setValue(final Integer newValue) {
+            final int oldValue = this.value;
             this.value = newValue;
             return oldValue;
         }
@@ -620,7 +620,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
         @Override
         public final int hashCode() {
-            return this.key ^ (int)(this.value ^ (this.value >>> 32));
+            return this.key ^ this.value;
         }
 
         @Override
@@ -634,7 +634,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * Adds a new entry with the specified key, value and hash code to the specified bucket. It is the responsibility of
      * this method to resize the table if appropriate.
      */
-    private void addEntry(final int key, final long value, final int index) {
+    private void addEntry(final int key, final int value, final int index) {
         this.mapTable[index] = new Entry(key, value, this.mapTable[index]);
         this.size++;
         if (key < this.minIndex)
@@ -662,7 +662,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         while (listSize < minListSize)
             listSize <<= 1;
 
-        this.list = new long[listSize];
+        this.list = new int[listSize];
         for (Entry e : this.mapTable) {
             while (e != null) {
                 if (e.key < this.minIndex || e.key > this.maxIndex)
@@ -682,7 +682,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         this.modCount++;
     }
 
-    private class MapIterator implements Iterator<Map.Entry<Integer, Long>> {
+    private class MapIterator implements Iterator<Map.Entry<Integer, Integer>> {
         Entry next; // next entry to return
 
         int expectedModCount; // For fast-fail
@@ -692,9 +692,9 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         Entry current; // current entry
 
         protected MapIterator() {
-            this.expectedModCount = IntegerToLongMap.this.modCount;
-            if (IntegerToLongMap.this.size > 0) { // advance to first entry
-                final Entry[] t = IntegerToLongMap.this.mapTable;
+            this.expectedModCount = IntegerToIntegerMap.this.modCount;
+            if (IntegerToIntegerMap.this.size > 0) { // advance to first entry
+                final Entry[] t = IntegerToIntegerMap.this.mapTable;
                 while (this.index < t.length && (this.next = t[this.index++]) == null) {
                     continue;
                 }
@@ -702,14 +702,14 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         }
 
         public Entry next() {
-            if (IntegerToLongMap.this.modCount != this.expectedModCount)
+            if (IntegerToIntegerMap.this.modCount != this.expectedModCount)
                 throw new ConcurrentModificationException();
             final Entry e = this.next;
             if (e == null)
                 throw new NoSuchElementException();
 
             if ((this.next = e.next) == null) {
-                final Entry[] t = IntegerToLongMap.this.mapTable;
+                final Entry[] t = IntegerToIntegerMap.this.mapTable;
                 while (this.index < t.length && (this.next = t[this.index++]) == null)
                     continue;
             }
@@ -724,12 +724,12 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         public void remove() {
             if (this.current == null)
                 throw new IllegalStateException();
-            if (IntegerToLongMap.this.modCount != this.expectedModCount)
+            if (IntegerToIntegerMap.this.modCount != this.expectedModCount)
                 throw new ConcurrentModificationException();
             final int k = this.current.key;
             this.current = null;
-            IntegerToLongMap.this.remove(k);
-            this.expectedModCount = IntegerToLongMap.this.modCount;
+            IntegerToIntegerMap.this.remove(k);
+            this.expectedModCount = IntegerToIntegerMap.this.modCount;
         }
 
     }
@@ -746,33 +746,33 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         return new AbstractSet<Integer>() {
             @Override
             public Iterator<Integer> iterator() {
-                if (IntegerToLongMap.this.list != null) {
+                if (IntegerToIntegerMap.this.list != null) {
                     return new Iterator<Integer>() {
 
                         int nextCursor = getNextCursor(0);
 
-                        int expectedModCount = IntegerToLongMap.this.modCount;
+                        int expectedModCount = IntegerToIntegerMap.this.modCount;
 
                         int lastKey = -1;
 
                         private int getNextCursor(final int i) {
                             int next = i;
-                            while (next < IntegerToLongMap.this.list.length
-                                    && IntegerToLongMap.this.list[next] == 0
-                                    && (IntegerToLongMap.this.listEntriesWithZeroValue == null
-                                        || !IntegerToLongMap.this.listEntriesWithZeroValue[next]))
+                            while (next < IntegerToIntegerMap.this.list.length
+                                    && IntegerToIntegerMap.this.list[next] == 0
+                                    && (IntegerToIntegerMap.this.listEntriesWithZeroValue == null
+                                        || !IntegerToIntegerMap.this.listEntriesWithZeroValue[next]))
                                 ++next;
                             return next;
                         }
 
                         public boolean hasNext() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
-                            return this.nextCursor < IntegerToLongMap.this.list.length;
+                            return this.nextCursor < IntegerToIntegerMap.this.list.length;
                         }
 
                         public Integer next() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (!hasNext())
                                 throw new NoSuchElementException();
@@ -782,11 +782,11 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
                         }
 
                         public void remove() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (this.lastKey == -1)
                                 throw new IllegalStateException();
-                            IntegerToLongMap.this.remove(this.lastKey);
+                            IntegerToIntegerMap.this.remove(this.lastKey);
                         }
 
                     };
@@ -794,7 +794,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
                 // else:
 
                 return new Iterator<Integer>() {
-                    private final Iterator<Map.Entry<Integer, Long>> i = new MapIterator();
+                    private final Iterator<Map.Entry<Integer, Integer>> i = new MapIterator();
 
                     public boolean hasNext() {
                         return this.i.hasNext();
@@ -812,12 +812,12 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
             @Override
             public int size() {
-                return IntegerToLongMap.this.size();
+                return IntegerToIntegerMap.this.size();
             }
 
             @Override
             public boolean contains(final Object k) {
-                return IntegerToLongMap.this.containsKey(k);
+                return IntegerToIntegerMap.this.containsKey(k);
             }
         };
     }
@@ -831,65 +831,65 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      * <tt>retainAll</tt> and <tt>clear</tt> operations. It does not support the <tt>add</tt> or <tt>addAll</tt>
      * operations.
      */
-    public Collection<Long> values() {
-        return new AbstractCollection<Long>() {
+    public Collection<Integer> values() {
+        return new AbstractCollection<Integer>() {
             @Override
-            public Iterator<Long> iterator() {
-                if (IntegerToLongMap.this.list != null) {
-                    return new Iterator<Long>() {
+            public Iterator<Integer> iterator() {
+                if (IntegerToIntegerMap.this.list != null) {
+                    return new Iterator<Integer>() {
 
                         int nextCursor = getNextCursor(0);
 
-                        int expectedModCount = IntegerToLongMap.this.modCount;
+                        int expectedModCount = IntegerToIntegerMap.this.modCount;
 
                         int lastKey = -1;
 
                         private int getNextCursor(final int i) {
                             int next = i;
-                            while (next < IntegerToLongMap.this.list.length
-                                    && IntegerToLongMap.this.list[next] == 0
-                                    && (IntegerToLongMap.this.listEntriesWithZeroValue == null
-                                        || !IntegerToLongMap.this.listEntriesWithZeroValue[next]))
+                            while (next < IntegerToIntegerMap.this.list.length
+                                    && IntegerToIntegerMap.this.list[next] == 0
+                                    && (IntegerToIntegerMap.this.listEntriesWithZeroValue == null
+                                        || !IntegerToIntegerMap.this.listEntriesWithZeroValue[next]))
                                 ++next;
                             return next;
                         }
 
                         public boolean hasNext() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
-                            return this.nextCursor < IntegerToLongMap.this.list.length;
+                            return this.nextCursor < IntegerToIntegerMap.this.list.length;
                         }
 
-                        public Long next() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                        public Integer next() {
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (!hasNext())
                                 throw new NoSuchElementException();
                             this.lastKey = this.nextCursor;
                             this.nextCursor = getNextCursor(this.nextCursor + 1);
-                            return IntegerToLongMap.this.list[this.lastKey];
+                            return IntegerToIntegerMap.this.list[this.lastKey];
                         }
 
                         public void remove() {
-                            if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                            if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             if (this.lastKey == -1)
                                 throw new IllegalStateException();
-                            IntegerToLongMap.this.remove(this.lastKey);
+                            IntegerToIntegerMap.this.remove(this.lastKey);
                         }
 
                     };
                 }
                 // else:
 
-                return new Iterator<Long>() {
-                    private final Iterator<Map.Entry<Integer, Long>> i = new MapIterator();
+                return new Iterator<Integer>() {
+                    private final Iterator<Map.Entry<Integer, Integer>> i = new MapIterator();
 
                     public boolean hasNext() {
                         return this.i.hasNext();
                     }
 
-                    public Long next() {
+                    public Integer next() {
                         return this.i.next().getValue();
                     }
 
@@ -901,12 +901,12 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
             @Override
             public int size() {
-                return IntegerToLongMap.this.size();
+                return IntegerToIntegerMap.this.size();
             }
 
             @Override
             public boolean contains(final Object v) {
-                return IntegerToLongMap.this.containsValue(v);
+                return IntegerToIntegerMap.this.containsValue(v);
             }
         };
     }
@@ -922,54 +922,54 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
      *
      * @return a set view of the mappings contained in this map
      */
-    public Set<Map.Entry<Integer, Long>> entrySet() {
+    public Set<Map.Entry<Integer, Integer>> entrySet() {
         return new EntrySet();
     }
 
-    final class EntrySet implements Set<Map.Entry<Integer, Long>> {
+    final class EntrySet implements Set<Map.Entry<Integer, Integer>> {
 
-        public Iterator<Map.Entry<Integer, Long>> iterator() {
-            if (IntegerToLongMap.this.list != null) {
-                return new Iterator<Map.Entry<Integer, Long>>() {
+        public Iterator<Map.Entry<Integer, Integer>> iterator() {
+            if (IntegerToIntegerMap.this.list != null) {
+                return new Iterator<Map.Entry<Integer, Integer>>() {
 
                     int nextCursor = getNextCursor(0);
 
-                    int expectedModCount = IntegerToLongMap.this.modCount;
+                    int expectedModCount = IntegerToIntegerMap.this.modCount;
 
                     int lastKey = -1;
 
                     private int getNextCursor(final int i) {
                         int next = i;
-                        while (next < IntegerToLongMap.this.list.length
-                                && IntegerToLongMap.this.list[next] == 0
-                                && (IntegerToLongMap.this.listEntriesWithZeroValue == null
-                                    || !IntegerToLongMap.this.listEntriesWithZeroValue[next]))
+                        while (next < IntegerToIntegerMap.this.list.length
+                                && IntegerToIntegerMap.this.list[next] == 0
+                                && (IntegerToIntegerMap.this.listEntriesWithZeroValue == null
+                                    || !IntegerToIntegerMap.this.listEntriesWithZeroValue[next]))
                             ++next;
                         return next;
                     }
 
                     public boolean hasNext() {
-                        if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                        if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                             throw new ConcurrentModificationException();
-                        return this.nextCursor < IntegerToLongMap.this.list.length;
+                        return this.nextCursor < IntegerToIntegerMap.this.list.length;
                     }
 
                     public Entry next() {
-                        if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                        if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                             throw new ConcurrentModificationException();
                         if (!hasNext())
                             throw new NoSuchElementException();
                         this.lastKey = this.nextCursor;
                         this.nextCursor = getNextCursor(this.nextCursor + 1);
-                        return new Entry(this.lastKey, IntegerToLongMap.this.list[this.lastKey], null);
+                        return new Entry(this.lastKey, IntegerToIntegerMap.this.list[this.lastKey], null);
                     }
 
                     public void remove() {
-                        if (this.expectedModCount != IntegerToLongMap.this.modCount)
+                        if (this.expectedModCount != IntegerToIntegerMap.this.modCount)
                             throw new ConcurrentModificationException();
                         if (this.lastKey == -1)
                             throw new IllegalStateException();
-                        IntegerToLongMap.this.remove(this.lastKey);
+                        IntegerToIntegerMap.this.remove(this.lastKey);
                     }
 
                 };
@@ -990,25 +990,25 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         public boolean remove(final Object o) {
             if (o instanceof Entry) {
                 final int key = ((Entry)o).key;
-                return IntegerToLongMap.this.containsKey(key)
-                    && IntegerToLongMap.this.remove(((Entry) o).key) == IntegerToLongMap.this.defaultValue;
+                return IntegerToIntegerMap.this.containsKey(key)
+                    && IntegerToIntegerMap.this.remove(((Entry) o).key) == IntegerToIntegerMap.this.defaultValue;
             }
             return false;
         }
 
         public int size() {
-            return IntegerToLongMap.this.size;
+            return IntegerToIntegerMap.this.size;
         }
 
         public void clear() {
-            IntegerToLongMap.this.clear();
+            IntegerToIntegerMap.this.clear();
         }
 
-        public boolean add(final java.util.Map.Entry<Integer, Long> e) {
+        public boolean add(final java.util.Map.Entry<Integer, Integer> e) {
             throw new UnsupportedOperationException();
         }
 
-        public boolean addAll(final Collection<? extends Map.Entry<Integer, Long>> c) {
+        public boolean addAll(final Collection<? extends Map.Entry<Integer, Integer>> c) {
             throw new UnsupportedOperationException();
         }
 
@@ -1020,7 +1020,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         }
 
         public boolean isEmpty() {
-            return IntegerToLongMap.this.isEmpty();
+            return IntegerToIntegerMap.this.isEmpty();
         }
 
         public boolean removeAll(final Collection<?> c) {
@@ -1032,7 +1032,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         }
 
         public boolean retainAll(final Collection<?> c) {
-            final Iterator<Map.Entry<Integer, Long>> e = iterator();
+            final Iterator<Map.Entry<Integer, Integer>> e = iterator();
             boolean changed = false;
             while (e.hasNext())
                 if (!c.contains(e.next())) {
@@ -1044,7 +1044,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
         public Object[] toArray() {
             final Object[] r = new Object[size()];
-            final Iterator<Map.Entry<Integer, Long>> it = iterator();
+            final Iterator<Map.Entry<Integer, Integer>> it = iterator();
             for (int i = 0; i < r.length; i++) {
                 if (!it.hasNext()) { // fewer elements than expected
                     final Object[] r2 = new Object[i];
@@ -1060,7 +1060,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         public <T> T[] toArray(final T[] a) {
             final T[] r = a.length >= size() ? a : (T[]) java.lang.reflect.Array.newInstance(a.getClass()
                     .getComponentType(), size());
-            final Iterator<Map.Entry<Integer, Long>> it = iterator();
+            final Iterator<Map.Entry<Integer, Integer>> it = iterator();
 
             for (int i = 0; i < r.length; i++) {
                 if (!it.hasNext()) { // fewer elements than expected
@@ -1122,16 +1122,16 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
     @Override
     public String toString() {
-        final Iterator<Map.Entry<Integer, Long>> i = entrySet().iterator();
+        final Iterator<Map.Entry<Integer, Integer>> i = entrySet().iterator();
         if (!i.hasNext())
             return "{}";
 
         final StringBuilder sb = new StringBuilder();
         sb.append('{');
         while (true) {
-            final Map.Entry<Integer, Long> e = i.next();
+            final Map.Entry<Integer, Integer> e = i.next();
             final Integer key = e.getKey();
-            final Long value = e.getValue();
+            final Integer value = e.getValue();
             sb.append(key).append('=').append(value);
             if (!i.hasNext())
                 return sb.append('}').toString();
@@ -1142,7 +1142,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
     @Override
     public int hashCode() {
         int h = 0;
-        final Iterator<Map.Entry<Integer, Long>> i = entrySet().iterator();
+        final Iterator<Map.Entry<Integer, Integer>> i = entrySet().iterator();
         while (i.hasNext())
             h += i.next().hashCode();
         return h;
@@ -1161,11 +1161,11 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
             return false;
 
         try {
-            final Iterator<Map.Entry<Integer, Long>> i = entrySet().iterator();
+            final Iterator<Map.Entry<Integer, Integer>> i = entrySet().iterator();
             while (i.hasNext()) {
-                final Map.Entry<Integer, Long> e = i.next();
+                final Map.Entry<Integer, Integer> e = i.next();
                 final Integer key = e.getKey();
-                final Long value = e.getValue();
+                final Integer value = e.getValue();
                 if (!value.equals(m.get(key)))
                     return false;
             }
@@ -1179,16 +1179,16 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
     }
 
     @Override
-    public IntegerToLongMap clone() {
-        IntegerToLongMap clone;
+    public IntegerToIntegerMap clone() {
+        IntegerToIntegerMap clone;
         try {
-            clone = (IntegerToLongMap) super.clone();
+            clone = (IntegerToIntegerMap) super.clone();
         } catch (final CloneNotSupportedException e) {
             // this should never occur since we are cloneable!!
             throw new RuntimeException(e);
         }
         if (this.list != null) {
-            clone.list = new long[this.list.length];
+            clone.list = new int[this.list.length];
             System.arraycopy(this.list, 0, clone.list, 0, this.list.length);
         }
         if (this.listEntriesWithZeroValue != null) {

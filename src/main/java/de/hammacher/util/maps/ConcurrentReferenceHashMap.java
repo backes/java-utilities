@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.maps;
 
 import java.io.IOException;
 import java.io.Serializable;

@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.maps;
 
 import java.util.AbstractCollection;
 import java.util.AbstractSet;

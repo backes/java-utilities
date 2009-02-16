@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.hammacher.util.streams.OptimizedDataOutputStream;
+
 
 public class StringCacheOutput {
 

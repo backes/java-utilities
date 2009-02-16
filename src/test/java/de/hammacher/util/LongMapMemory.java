@@ -2,6 +2,8 @@ package de.hammacher.util;
 
 import java.util.Map;
 
+import de.hammacher.util.maps.LongMap;
+
 public class LongMapMemory {
 
 	public static void main(String[] args) {

@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
 
+import de.hammacher.util.maps.LongMap;
+
 public class LongMapTest {
 
 	private static interface LongGenerator {

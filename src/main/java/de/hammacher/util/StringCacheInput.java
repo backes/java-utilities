@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.hammacher.util.streams.OptimizedDataInputStream;
+
 
 public class StringCacheInput {
 

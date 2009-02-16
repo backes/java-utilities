@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.streams;
 
 import java.io.EOFException;
 import java.io.FilterInputStream;

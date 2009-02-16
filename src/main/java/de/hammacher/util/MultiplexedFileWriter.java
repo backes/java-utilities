@@ -24,10 +24,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import de.hammacher.util.ConcurrentReferenceHashMap.Option;
-import de.hammacher.util.ConcurrentReferenceHashMap.ReferenceType;
-import de.hammacher.util.ConcurrentReferenceHashMap.RemoveStaleListener;
 import de.hammacher.util.MultiplexedFileWriter.MultiplexOutputStream.InnerOutputStream;
+import de.hammacher.util.maps.ConcurrentReferenceHashMap;
+import de.hammacher.util.maps.ConcurrentReferenceHashMap.Option;
+import de.hammacher.util.maps.ConcurrentReferenceHashMap.ReferenceType;
+import de.hammacher.util.maps.ConcurrentReferenceHashMap.RemoveStaleListener;
+import de.hammacher.util.streams.MyByteArrayInputStream;
+import de.hammacher.util.streams.MyByteArrayOutputStream;
+import de.hammacher.util.streams.MyDataInputStream;
+import de.hammacher.util.streams.MyDataOutputStream;
 
 public class MultiplexedFileWriter {
 

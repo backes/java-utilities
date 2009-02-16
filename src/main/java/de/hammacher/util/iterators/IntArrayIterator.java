@@ -1,4 +1,4 @@
-package de.hammacher.util;
+package de.hammacher.util.iterators;
 
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
