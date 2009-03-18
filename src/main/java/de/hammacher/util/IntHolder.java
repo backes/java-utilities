@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Clemens Hammacher
  */
-public class IntHolder extends Number {
+public class IntHolder extends Number implements Comparable<IntHolder> {
 
     private static final long serialVersionUID = 9105103358098386487L;
 
@@ -166,5 +166,9 @@ public class IntHolder extends Number {
     public double doubleValue() {
         return get();
     }
+
+	public int compareTo(IntHolder o) {
+		return this.value - o.value;
+	}
 
 }

@@ -1,13 +1,32 @@
 package de.hammacher.util;
 
 
+/**
+ * A simple class consisting of two independent values.
+ *
+ * @author Clemens Hammacher
+ * @param <T1> the type of the first value
+ * @param <T2> the type of the second value
+ */
 public class Pair<T1, T2> {
 
     private T1 first;
     private T2 second;
 
+    /**
+     * Constructor that initializes both fields with <code>null</code>.
+     */
+    public Pair() {
+    	// nop
+    }
+
+    /**
+     * Constructor that initializes both values.
+     *
+     * @param first first initial value
+     * @param second second initial value
+     */
     public Pair(final T1 first, final T2 second) {
-        super();
         this.first = first;
         this.second = second;
     }
