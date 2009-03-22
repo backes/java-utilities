@@ -19,22 +19,39 @@ public class UniqueQueue<E> extends ArrayQueue<E> {
     private final Set<E> seen;
     private final boolean allowReinsertion;
 
+    /**
+     * Creates a UniqueQueue where reinsertion is not allowed.
+     */
     public UniqueQueue() {
     	this(false);
     }
 
+    /**
+     * Creates a UniqueQueue.
+     * @param allowReinsertion controls whether reinsertion is allowed or not
+     */
     public UniqueQueue(boolean allowReinsertion) {
         super();
         this.allowReinsertion = allowReinsertion;
         this.seen = new HashSet<E>();
     }
 
+    /**
+     * Creates a UniqueQueue from a given collection.
+     * @param c the collection from which to create the UniqueQueue
+     * @param allowReinsertion controls whether reinsertion is allowed or not
+     */
     public UniqueQueue(final Collection<? extends E> c, boolean allowReinsertion) {
         super(c);
         this.allowReinsertion = allowReinsertion;
         this.seen = new HashSet<E>(c);
     }
 
+    /**
+     * Creates a UniqueQueue.
+     * @param initialCapacity the initial capacity of the queue
+     * @param allowReinsertion controls whether reinsertion is allowed or not
+     */
     public UniqueQueue(final int initialCapacity, boolean allowReinsertion) {
         super(initialCapacity);
         this.allowReinsertion = allowReinsertion;
