@@ -262,8 +262,8 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 				--this.inPos;
 				throw e;
 			}
+			assert this.inPos == 0;
 		}
-		assert this.inPos == 0;
 	}
 
 	public boolean addAll(Collection<? extends E> c) {
