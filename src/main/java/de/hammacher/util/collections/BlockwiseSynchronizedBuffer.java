@@ -68,11 +68,15 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 
 	}
 
+	private final BlockingQueue<E[]> reusableArrQueue;
+
 	private final BlockingQueue<E[]> arrQueue;
 	private final AtomicInteger arrQueueSize = new AtomicInteger(0); // number of elements (NOT arrays!!) in the arrQueue
 
+	private final int blockSize;
+
 	private int inPos = 0;
-	private E[] in; // size of this array == blockSize
+	private E[] in;
 	private int outPos = 0;
 	private E[] out = newArray(0);
 	private final Semaphore spaceAvailable;
@@ -82,7 +86,9 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 			throw new IllegalArgumentException("blockSize must be > 0");
 		if (blockSize > maxBufferLength)
 			throw new IllegalArgumentException("blockSize must be <= maxBufferLength");
+		this.blockSize = blockSize;
 		this.arrQueue = new ArrayBlockingQueue<E[]>(maxBufferLength); // this is just another limit, but it should never get reached
+		this.reusableArrQueue = new ArrayBlockingQueue<E[]>(maxBufferLength); // this is just another limit, but it should never get reached
 		this.spaceAvailable = new Semaphore(maxBufferLength);
 		this.in = newArray(blockSize);
 	}
@@ -93,11 +99,13 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 	}
 
 	public void flush() throws InterruptedException {
-		if (this.inPos == this.in.length) {
+		if (this.inPos == this.blockSize) {
 			this.spaceAvailable.acquire(this.inPos);
 			this.arrQueue.put(this.in);
 			this.arrQueueSize.addAndGet(this.inPos);
-			this.in = newArray(this.inPos);
+			this.in = this.reusableArrQueue.poll();
+			if (this.in == null)
+				this.in = newArray(this.blockSize);
 			this.inPos = 0;
 		} else if (this.inPos != 0) {
 			this.spaceAvailable.acquire(this.inPos);
@@ -110,12 +118,14 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 	}
 
 	public boolean tryFlush() {
-		if (this.inPos == this.in.length) {
+		if (this.inPos == this.blockSize) {
 			if (!this.spaceAvailable.tryAcquire(this.inPos))
 				return false;
 			this.arrQueue.add(this.in);
 			this.arrQueueSize.addAndGet(this.inPos);
-			this.in = newArray(this.inPos);
+			this.in = this.reusableArrQueue.poll();
+			if (this.in == null)
+				this.in = newArray(this.blockSize);
 			this.inPos = 0;
 		} else if (this.inPos != 0) {
 			if (!this.spaceAvailable.tryAcquire(this.inPos))
@@ -272,7 +282,10 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 
 	public E take() throws InterruptedException {
 		if (this.outPos == this.out.length) {
+			E[] old = this.out;
 			this.out = this.arrQueue.take(); // throws InterruptedException
+			if (old.length == this.blockSize)
+				this.reusableArrQueue.add(old);
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
 			assert this.out.length > 0;
@@ -283,7 +296,10 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 
 	public E element() {
 		if (this.outPos == this.out.length) {
+			E[] old = this.out;
 			this.out = this.arrQueue.remove(); // throws NoSuchElementException
+			if (old.length == this.blockSize)
+				this.reusableArrQueue.add(old);
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
 			assert this.out.length > 0;
@@ -297,6 +313,8 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 			E[] nextBlock = this.arrQueue.poll();
 			if (nextBlock == null)
 				return null;
+			if (this.out.length == this.blockSize)
+				this.reusableArrQueue.add(this.out);
 			this.out = nextBlock;
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
@@ -311,6 +329,8 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 			E[] nextBlock = this.arrQueue.poll();
 			if (nextBlock == null)
 				return null;
+			if (this.out.length == this.blockSize)
+				this.reusableArrQueue.add(this.out);
 			this.out = nextBlock;
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
@@ -325,6 +345,8 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 			E[] nextBlock = this.arrQueue.poll(timeout, unit);
 			if (nextBlock == null)
 				return null;
+			if (this.out.length == this.blockSize)
+				this.reusableArrQueue.add(this.out);
 			this.out = nextBlock;
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
@@ -336,7 +358,10 @@ public class BlockwiseSynchronizedBuffer<E> implements BlockingQueue<E> {
 
 	public E remove() {
 		if (this.outPos == this.out.length) {
+			E[] old = this.out;
 			this.out = this.arrQueue.remove(); // throws NoSuchElementException
+			if (old.length == this.blockSize)
+				this.reusableArrQueue.add(old);
 			this.arrQueueSize.addAndGet(-this.out.length);
 			this.spaceAvailable.release(this.out.length);
 			assert this.out.length > 0;
