@@ -21,12 +21,10 @@ public interface Filter<T> {
 		 * Returns a singleton instance of FilterAll.
 		 *
 		 * @param <T>
-		 * @param obj this object is never used; it just determines the
-		 *            generic type to return.
 		 * @return a singleton instance of FilterAll
 		 */
 		@SuppressWarnings("unchecked")
-		public static <T> FilterAll<T> get(T obj) {
+		public static <T> FilterAll<T> get() {
 			return (FilterAll<T>) instance;
 		}
 
@@ -48,12 +46,10 @@ public interface Filter<T> {
 		 * Returns a singleton instance of FilterNone.
 		 *
 		 * @param <T>
-		 * @param obj this object is never used; it just determines the
-		 *            generic type to return.
 		 * @return a singleton instance of FilterNone
 		 */
 		@SuppressWarnings("unchecked")
-		public static <T> FilterNone<T> get(T obj) {
+		public static <T> FilterNone<T> get() {
 			return (FilterNone<T>) instance;
 		}
 

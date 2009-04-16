@@ -4,9 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import de.hammacher.util.Graph.Node;
@@ -27,7 +25,7 @@ public class Graph2Dot {
 	}
 
 	public void export(Graph<?> graph, PrintStream out) {
-		out.println("digraph " + this.graphName + " {");
+		out.format("digraph %s {%n", quoteDotString(this.graphName));
 		if (!this.graphAttributes.isEmpty()) {
 			out.println();
 			for (Map.Entry<String, String> e: this.graphAttributes.entrySet())
@@ -39,18 +37,18 @@ public class Graph2Dot {
 			out.format("%n  node [shape=%s]%n%n", quoteDotString(this.nodeShape));
 
 		Node<?>[] nodes = graph.getNodes().toArray(new Node[0]);
-		List<Node<?>> nodeList = new ArrayList<Node<?>>(nodes.length);
 		Map<Node<?>, Integer> nodeNumbers = new HashMap<Node<?>, Integer>(nodes.length*4/3 + 1);
-		for (Node<?> node: graph.getNodes()) {
+		for (Node<?> node : nodes) {
 			int nr = nodeNumbers.size();
-			nodeNumbers.put(node, nr);
-			nodeList.add(node);
+			Integer old = nodeNumbers.put(node, nr);
+			if (old != null)
+				throw new AssertionError("node appears more than one time in graph.getNodes()");
 			out.format("  %d [label=%s]%n", nr, quoteDotString(node.getLabel()));
 		}
 
 		out.println();
 
-		for (Node<?> node: nodes) {
+		for (Node<?> node : nodes) {
 			Integer nr1 = nodeNumbers.get(node);
 			for (Node<?> succ: node.getSuccessors()) {
 				Integer nr2 = nodeNumbers.get(succ);
@@ -77,7 +75,7 @@ public class Graph2Dot {
 	 * @param value
 	 * @return the old value
 	 */
-	public String addGraphAttribute(String key, String value) {
+	public String setGraphAttribute(String key, String value) {
 		return this.graphAttributes.put(key, value);
 	}
 

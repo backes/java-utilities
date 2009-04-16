@@ -21,8 +21,6 @@ public interface Graph<NodeType extends Graph.Node<NodeType>> {
 		 */
 		Collection<? extends NodeType> getSuccessors();
 
-		Graph<NodeType> getGraph();
-
 		String getLabel();
 
 	}
