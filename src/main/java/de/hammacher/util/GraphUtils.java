@@ -50,7 +50,7 @@ public class GraphUtils {
 		NodeType node;
 		while ((node = queue.poll()) != null) {
 			for (NodeType succ : node.getSuccessors())
-				if (filter.filter(succ))
+				if (!filter.filter(succ))
 					queue.add(succ);
 		}
 

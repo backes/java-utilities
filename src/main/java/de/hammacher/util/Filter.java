@@ -9,7 +9,7 @@ package de.hammacher.util;
 public interface Filter<T> {
 
 	/**
-	 * A {@link Filter} that accepts all objects.
+	 * A {@link Filter} that filters out all objects.
 	 *
 	 * @author Clemens Hammacher
 	 */
@@ -34,7 +34,7 @@ public interface Filter<T> {
 	}
 
 	/**
-	 * A {@link Filter} that rejects all objects.
+	 * A {@link Filter} that accepts all objects.
 	 *
 	 * @author Clemens Hammacher
 	 */
@@ -59,13 +59,10 @@ public interface Filter<T> {
 	}
 
 	/**
-	 * Determines whether the given object should be filtered or not.
-	 *
-	 * In general, returning true means accepting the object, false means
-	 * rejecting it.
+	 * Determines whether the given object should be filtered out or not.
 	 *
 	 * @param obj the object under consideration
-	 * @return true to accept the object, false to reject it
+	 * @return true to filter out the object, false to accept it
 	 */
 	boolean filter(T obj);
 
