@@ -54,7 +54,7 @@ public interface Filter<T> {
 		}
 
 		public boolean filter(T obj) {
-			return true;
+			return false;
 		}
 	}
 

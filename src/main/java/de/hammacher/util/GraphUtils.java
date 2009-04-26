@@ -1,10 +1,11 @@
 package de.hammacher.util;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import de.hammacher.util.Filter.FilterAll;
+import de.hammacher.util.Filter.FilterNone;
 import de.hammacher.util.Graph.Node;
 
 
@@ -41,10 +42,13 @@ public class GraphUtils {
 	}
 
 	public static <NodeType extends Node<NodeType>> Set<NodeType> getReachable(NodeType startNode) {
-		return getReachable(startNode, FilterAll.get());
+		return getReachable(startNode, FilterNone.get());
 	}
 
 	public static <NodeType extends Node<NodeType>> Set<NodeType> getReachable(NodeType startNode, Filter<? super NodeType> filter) {
+		if (filter.filter(startNode))
+			return Collections.emptySet();
+
 		UniqueQueue<NodeType> queue = new UniqueQueue<NodeType>();
 		queue.add(startNode);
 		NodeType node;

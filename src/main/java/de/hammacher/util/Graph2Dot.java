@@ -7,15 +7,21 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import de.hammacher.util.Graph.EdgeLabelProvider;
 import de.hammacher.util.Graph.Node;
 
-public class Graph2Dot {
+public class Graph2Dot<NodeType extends Node<NodeType>> {
 
 	private String graphName = "graph";
 	private String nodeShape;
 	private final Map<String, String> graphAttributes = new HashMap<String, String>(4);
+	private EdgeLabelProvider<? super NodeType> edgeLabelProvider = null;
 
-	public void export(Graph<?> graph, File dotFile) throws IOException {
+	public void setEdgeLabelProvider(EdgeLabelProvider<? super NodeType> edgeLabelProvider) {
+		this.edgeLabelProvider = edgeLabelProvider;
+	}
+
+	public void export(Graph<? extends NodeType> graph, File dotFile) throws IOException {
 		FileOutputStream fos = new FileOutputStream(dotFile);
 		try {
 			export(graph, new PrintStream(fos));
@@ -24,7 +30,7 @@ public class Graph2Dot {
 		}
 	}
 
-	public void export(Graph<?> graph, PrintStream out) {
+	public void export(Graph<? extends NodeType> graph, PrintStream out) {
 		out.format("digraph %s {%n", quoteDotString(this.graphName));
 		if (!this.graphAttributes.isEmpty()) {
 			out.println();
@@ -36,9 +42,12 @@ public class Graph2Dot {
 		else
 			out.format("%n  node [shape=%s]%n%n", quoteDotString(this.nodeShape));
 
-		Node<?>[] nodes = graph.getNodes().toArray(new Node[0]);
-		Map<Node<?>, Integer> nodeNumbers = new HashMap<Node<?>, Integer>(nodes.length*4/3 + 1);
-		for (Node<?> node : nodes) {
+		@SuppressWarnings("unchecked")
+		NodeType[] nodes = (NodeType[]) graph.getNodes().toArray(new Node<?>[0]);
+
+		Map<Node<? extends NodeType>, Integer> nodeNumbers =
+			new HashMap<Node<? extends NodeType>, Integer>(nodes.length*4/3 + 1);
+		for (Node<? extends NodeType> node : nodes) {
 			int nr = nodeNumbers.size();
 			Integer old = nodeNumbers.put(node, nr);
 			if (old != null)
@@ -48,13 +57,17 @@ public class Graph2Dot {
 
 		out.println();
 
-		for (Node<?> node : nodes) {
+		for (NodeType node : nodes) {
 			Integer nr1 = nodeNumbers.get(node);
-			for (Node<?> succ: node.getSuccessors()) {
+			for (NodeType succ: node.getSuccessors()) {
 				Integer nr2 = nodeNumbers.get(succ);
 				if (nr1 == null || nr2 == null)
 					throw new AssertionError("successor not in graph nodes");
-				out.format("  %d -> %d%n", nr1, nr2);
+				String label = this.edgeLabelProvider == null ? null : this.edgeLabelProvider.getLabel(node, succ);
+				if (label == null)
+					out.format("  %d -> %d%n", nr1, nr2);
+				else
+					out.format("  %d -> %d [label=%s]%n", nr1, nr2, quoteDotString(label));
 			}
 		}
 

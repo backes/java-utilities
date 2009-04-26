@@ -25,6 +25,19 @@ public interface Graph<NodeType extends Graph.Node<NodeType>> {
 
 	}
 
+	public static interface EdgeLabelProvider<NodeType> {
+
+		/**
+		 * Determine the label for an edge.
+		 *
+		 * @param startNode the source node of the edge
+		 * @param endNode the target node of the edge
+		 * @return a label for the given edge (or <code>null</code> if the edge has no label)
+		 */
+		String getLabel(NodeType startNode, NodeType endNode);
+
+	}
+
 	/**
 	 * Returns a collection of all nodes of this graph.
 	 *
