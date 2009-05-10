@@ -1,12 +1,15 @@
-package de.hammacher.util;
+package de.hammacher.util.graph;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import de.hammacher.util.Filter;
+import de.hammacher.util.UniqueQueue;
+import de.hammacher.util.Visitor;
 import de.hammacher.util.Filter.FilterNone;
-import de.hammacher.util.Graph.Node;
+import de.hammacher.util.graph.Graph.Node;
 
 
 public class GraphUtils {

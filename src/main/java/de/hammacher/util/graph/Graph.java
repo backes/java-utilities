@@ -1,6 +1,7 @@
-package de.hammacher.util;
+package de.hammacher.util.graph;
 
 import java.util.Collection;
+
 
 /**
  * A generic graph interface.
@@ -10,6 +11,20 @@ import java.util.Collection;
  */
 public interface Graph<NodeType extends Graph.Node<NodeType>> {
 
+	/**
+	 * A node which is contained in a {@link Graph}.
+	 *
+	 * @author Clemens Hammacher
+	 *
+	 * @param <NodeType> a more exact type of the nodes. A type implementing
+	 * this interface could for example look like that:
+	 *
+	 * <code>class MyNodeType extends Graph.Node<MyNodeType> { ...</code>
+	 *
+	 * The benefit is that the graph knows the type of its nodes and for example
+	 * the {@link EdgeLabelProvider} does not need any casting to access specific
+	 * fields or methods of the nodes' type.
+	 */
 	public static interface Node<NodeType extends Node<NodeType>> {
 
 		/**
@@ -22,19 +37,6 @@ public interface Graph<NodeType extends Graph.Node<NodeType>> {
 		Collection<? extends NodeType> getSuccessors();
 
 		String getLabel();
-
-	}
-
-	public static interface EdgeLabelProvider<NodeType> {
-
-		/**
-		 * Determine the label for an edge.
-		 *
-		 * @param startNode the source node of the edge
-		 * @param endNode the target node of the edge
-		 * @return a label for the given edge (or <code>null</code> if the edge has no label)
-		 */
-		String getLabel(NodeType startNode, NodeType endNode);
 
 	}
 
