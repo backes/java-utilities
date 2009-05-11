@@ -19,6 +19,8 @@ public class GraphUtils {
 		private final UniqueQueue<NodeType> queue = new UniqueQueue<NodeType>();
 
 		public DFSIterator(NodeType startNode) {
+			if (startNode == null)
+				throw new NullPointerException();
 			this.queue.add(startNode);
 		}
 

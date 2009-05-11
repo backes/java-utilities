@@ -5,7 +5,7 @@ import java.util.NoSuchElementException;
 
 public class EmptyIterator<T> implements Iterator<T> {
 
-	private static final EmptyIterator<Object> instance =
+	private static final EmptyIterator<?> instance =
 		new EmptyIterator<Object>();
 
 	@SuppressWarnings("unchecked")
