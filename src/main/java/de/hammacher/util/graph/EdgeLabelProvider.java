@@ -17,6 +17,6 @@ public interface EdgeLabelProvider<NodeType> {
 	 * @param endNode the target node of the edge
 	 * @return a label for the given edge (or <code>null</code> if the edge has no label)
 	 */
-	String getLabel(NodeType startNode, NodeType endNode);
+	String getEdgeLabel(NodeType startNode, NodeType endNode);
 
 }

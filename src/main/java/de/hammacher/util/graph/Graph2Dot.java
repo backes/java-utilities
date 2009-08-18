@@ -21,6 +21,7 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 	private String graphName = "graph";
 	private String nodeShape;
 	private final Map<String, String> graphAttributes = new HashMap<String, String>(4);
+	private NodeLabelProvider<? super NodeType> nodeLabelProvider = null;
 	private EdgeLabelProvider<? super NodeType> edgeLabelProvider = null;
 	private GraphPartitioner<NodeType> graphPartitioner = null;
 	private NodeAttributeProvider<? super NodeType> nodeAttributeProvider = null;
@@ -41,6 +42,14 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 	 */
 	public void setEdgeLabelProvider(EdgeLabelProvider<? super NodeType> edgeLabelProvider) {
 		this.edgeLabelProvider = edgeLabelProvider;
+	}
+
+	/**
+	 * Sets a new node label provider for this exporter.
+	 * @param nodeLabelProvider the new edge label provider
+	 */
+	public void setNodeLabelProvider(NodeLabelProvider<? super NodeType> nodeLabelProvider) {
+		this.nodeLabelProvider = nodeLabelProvider;
 	}
 
 	/**
@@ -132,7 +141,7 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 				Integer nr2 = nodeNumbers.get(succ);
 				if (nr2 == null)
 					throw new IllegalArgumentException("Successor of a node not contained in the nodes.");
-				String label = this.edgeLabelProvider == null ? null : this.edgeLabelProvider.getLabel(node, succ);
+				String label = this.edgeLabelProvider == null ? null : this.edgeLabelProvider.getEdgeLabel(node, succ);
 				if (label == null)
 					out.format("  %d -> %d%n", nr1, nr2);
 				else
@@ -152,10 +161,11 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 			Map<String, String> attributes = this.nodeAttributeProvider == null
 				? Collections.<String, String>emptyMap()
 				: this.nodeAttributeProvider.getAttributes(node);
+			String label = this.nodeLabelProvider == null ? node.getLabel() : this.nodeLabelProvider.getNodeLabel(node);
 			if (attributes.isEmpty()) {
-				out.format("%s%d [label=%s]%n", inSubGraph ? "    " : "  ", nr, quoteDotString(node.getLabel()));
+				out.format("%s%d [label=%s]%n", inSubGraph ? "    " : "  ", nr, quoteDotString(label));
 			} else {
-				out.format("%s%d [label=%s", inSubGraph ? "    " : "  ", nr, quoteDotString(node.getLabel()));
+				out.format("%s%d [label=%s", inSubGraph ? "    " : "  ", nr, quoteDotString(label));
 				for (Entry<String, String> attribute : attributes.entrySet()) {
 					out.format(", %s=%s", attribute.getKey(), attribute.getValue());
 				}
