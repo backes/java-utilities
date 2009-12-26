@@ -121,7 +121,8 @@ public class UniqueQueue<E> extends ArrayQueue<E> {
 	@Override
 	public void clear() {
 		super.clear();
-		this.seen.clear();
+		if (this.allowReinsertion)
+			this.seen.clear();
 	}
 
 	@Override
