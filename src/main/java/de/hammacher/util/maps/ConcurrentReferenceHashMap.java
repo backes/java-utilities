@@ -1594,11 +1594,6 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
             this.value = value;
         }
 
-        public SimpleEntry(final Entry<? extends K, ? extends V> entry) {
-            this.key = entry.getKey();
-            this.value = entry.getValue();
-        }
-
         public K getKey() {
             return this.key;
         }
@@ -1615,7 +1610,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean equals(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             return eq(this.key, e.getKey()) && eq(this.value, e.getValue());
@@ -1763,7 +1758,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean contains(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             final V v = ConcurrentReferenceHashMap.this.get(e.getKey());
@@ -1772,7 +1767,7 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
 
         @Override
         public boolean remove(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             return ConcurrentReferenceHashMap.this.remove(e.getKey(), e

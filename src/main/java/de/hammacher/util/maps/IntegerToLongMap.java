@@ -98,7 +98,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
         final int initCapacity = initialCapacity > MAXIMUM_CAPACITY ? MAXIMUM_CAPACITY : initialCapacity;
-        if (loadFactor <= 0 || (loadFactor != loadFactor)) // check for negative value or NaN
+        if (loadFactor <= 0 || Float.isNaN(loadFactor)) // check for negative value or NaN
             throw new IllegalArgumentException("Illegal load factor: " + loadFactor);
 
         // Find a power of 2 >= initialCapacity
@@ -604,7 +604,7 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
         @Override
         public final boolean equals(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             final Integer k1 = getKey();

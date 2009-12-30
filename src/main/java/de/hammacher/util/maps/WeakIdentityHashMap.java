@@ -427,7 +427,7 @@ public class WeakIdentityHashMap<K, V> implements Map<K, V> {
 
         @Override
         public final boolean equals(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             final Object k1 = getKey();

@@ -98,7 +98,7 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
         final int initCapacity = initialCapacity > MAXIMUM_CAPACITY ? MAXIMUM_CAPACITY : initialCapacity;
-        if (loadFactor <= 0 || (loadFactor != loadFactor)) // check for negative value or NaN
+        if (loadFactor <= 0 || Float.isNaN(loadFactor)) // check for negative value or NaN
             throw new IllegalArgumentException("Illegal load factor: " + loadFactor);
 
         // Find a power of 2 >= initialCapacity
@@ -528,7 +528,7 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
 
         @Override
         public final boolean equals(final Object o) {
-            if (!(o instanceof Map.Entry))
+            if (!(o instanceof Map.Entry<?, ?>))
                 return false;
             final Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
             final Long k1 = getKey();
@@ -898,7 +898,7 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
         }
 
         public boolean contains(final Object o) {
-            if (!(o instanceof Entry))
+            if (!(o instanceof Entry<?>))
                 return false;
             final Entry<?> e = (Entry<?>) o;
             V val = get(e.key);
@@ -906,7 +906,7 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
         }
 
         public boolean remove(final Object o) {
-            if (o instanceof Entry) {
+            if (o instanceof Entry<?>) {
             	Entry<?> e = (Entry<?>) o;
             	V val = get(e.key);
             	if (val == null || !val.equals(e.getValue()))
@@ -1073,7 +1073,7 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
         if (o == this)
             return true;
 
-        if (!(o instanceof Map))
+        if (!(o instanceof Map<?, ?>))
             return false;
         final Map<?, ?> m = (Map<?, ?>) o;
         if (m.size() != size())
