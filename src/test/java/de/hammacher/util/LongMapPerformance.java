@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import de.hammacher.util.maps.IntegerMap;
@@ -89,7 +90,7 @@ public class LongMapPerformance {
 	public void uncontinuousRange_1000000() {
 		compareContinuous(Integer.MAX_VALUE, 1000000, 3);
 	}
-	@Test
+	@Test @Ignore
 	public void uncontinuousRange_10000000() {
 		compareContinuous(Integer.MAX_VALUE, 10000000, 2);
 	}
