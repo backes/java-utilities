@@ -38,7 +38,6 @@ public class MultiplexedFileReader {
         private final byte[] dataBlock;
         private final int[] pos;
         private int remainingInCurrentBlock;
-        private final int[] maxPos;
 
         protected MultiplexInputStream(final int id, final int beginningBlockAddr, final long length) throws IOException {
             this.id = id;
@@ -49,8 +48,6 @@ public class MultiplexedFileReader {
             this.pointerBlocks = new int[this.depth][MultiplexedFileReader.this.blockSize/4];
             this.dataBlock = new byte[MultiplexedFileReader.this.blockSize];
             this.remainingInCurrentBlock = (int) Math.min(this.dataLength, MultiplexedFileReader.this.blockSize);
-
-            this.maxPos = getBlocksPos(this.dataLength);
 
             if (this.depth == 0) {
                 readBlock(beginningBlockAddr, this.dataBlock);
@@ -66,7 +63,7 @@ public class MultiplexedFileReader {
         private int compDepth(final long len) throws IOException {
             int d = 0;
             long max = MultiplexedFileReader.this.blockSize;
-            while (max < len) {
+            while (max <= len) {
                 ++d;
                 max *= MultiplexedFileReader.this.blockSize/4;
                 if (max <= MultiplexedFileReader.this.blockSize)
@@ -80,6 +77,7 @@ public class MultiplexedFileReader {
                 throw new IOException("pos must be in the range 0 .. dataLength");
             if (this.depth == 0) {
                 this.pos[0] = (int) toPos;
+                this.remainingInCurrentBlock = (int)(this.dataLength-toPos);
                 return;
             }
             final int[] newPos = getBlocksPos(toPos);
@@ -100,11 +98,10 @@ public class MultiplexedFileReader {
         }
 
         private int[] getBlocksPos(final long position) {
-            if (position == this.dataLength) {
-                final int[] newPos = getBlocksPos(position-1);
-                ++newPos[this.depth];
-                return newPos;
-            }
+        	assert position <= this.dataLength;
+        	if (this.depth == 0)
+        		return new int[] { (int)position };
+
             final int[] newPos = new int[this.depth+1];
             newPos[this.depth] = (int) (position % MultiplexedFileReader.this.blockSize);
             long remaining = position / MultiplexedFileReader.this.blockSize;
@@ -114,11 +111,6 @@ public class MultiplexedFileReader {
             }
             assert remaining <= MultiplexedFileReader.this.blockSize/4;
             newPos[0] = (int) remaining;
-            for (int d = 0; d < this.depth && this.maxPos != null && newPos[d] > this.maxPos[d]; ++d) {
-                assert newPos[d] == this.maxPos[d]+1 && newPos[d+1] == 0;
-                --newPos[d];
-                newPos[d+1] = d == this.depth-1 ? MultiplexedFileReader.this.blockSize : MultiplexedFileReader.this.blockSize/4;
-            }
             return newPos;
         }
 
@@ -265,8 +257,8 @@ public class MultiplexedFileReader {
         this.blockSize = headerBuffer.getInt();
         if ((this.blockSize & 0x3) != 0)
             throw new IOException("blocksize must be divisible by 4");
-        if (this.blockSize <= 0)
-            throw new IllegalArgumentException("blockSize must be > 0");
+        if (this.blockSize < 8)
+            throw new IOException("blockSize must be >= 8");
         if ((1 << MAPPING_SLICE_SIZE_BITS) % this.blockSize != 0)
             throw new IllegalArgumentException("1<<"+MAPPING_SLICE_SIZE_BITS+" must be divisible by the blockSize");
         final int byteOrderInt = headerBuffer.get();
