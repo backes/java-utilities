@@ -62,15 +62,11 @@ public class IntegerToLongMap implements Map<Integer, Long>, Cloneable {
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     *
-     * @serial
      */
     private int mapThreshold;
 
     /**
      * The load factor for the hash table.
-     *
-     * @serial
      */
     private final float loadFactor;
 

@@ -185,8 +185,8 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 
 	/**
 	 * Set a graph attribute
-	 * @param key
-	 * @param value
+	 * @param key the key of the attribute
+	 * @param value the new value for the attribute
 	 * @return the old value
 	 */
 	public String setGraphAttribute(String key, String value) {

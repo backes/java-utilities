@@ -43,15 +43,11 @@ public class WeakIdentityHashMap<K, V> implements Map<K, V> {
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     *
-     * @serial
      */
     private int threshold;
 
     /**
      * The load factor for the hash table.
-     *
-     * @serial
      */
     private final float loadFactor;
 

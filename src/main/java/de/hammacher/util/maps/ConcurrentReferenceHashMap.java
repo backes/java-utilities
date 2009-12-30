@@ -459,8 +459,6 @@ public class ConcurrentReferenceHashMap<K, V> extends AbstractMap<K, V>
          * The load factor for the hash table. Even though this value is same
          * for all segments, it is replicated to avoid needing links to outer
          * object.
-         *
-         * @serial
          */
         private final float loadFactor;
 

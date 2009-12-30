@@ -13,7 +13,7 @@ public interface NodeLabelProvider<NodeType> {
 	/**
 	 * Determine the label for a node.
 	 *
-	 * @param startNode the node for which the label should be computed
+	 * @param node the node for which the label should be computed
 	 * @return a label for the given node (or <code>null</code> if the node has no label)
 	 */
 	String getNodeLabel(NodeType node);

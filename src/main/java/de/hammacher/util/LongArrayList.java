@@ -360,6 +360,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            index of the element to return
      * @return the element at the specified position in this list
      * @throws IndexOutOfBoundsException
+     *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #get(int)
      */
     public T get(final long index) {
@@ -400,6 +401,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            element to be stored at the specified position
      * @return the element previously at the specified position
      * @throws IndexOutOfBoundsException
+     *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #set(int, Object)
      */
     public T set(final long index, final T element) {
@@ -464,6 +466,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @param element
      *            element to be inserted
      * @throws IndexOutOfBoundsException
+     *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #add(int, Object)
      */
     public void add(final long index, final T element) {
@@ -543,6 +546,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            the index of the element to be removed
      * @return the element that was removed from the list
      * @throws IndexOutOfBoundsException
+     *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #remove(int)
      */
     public T remove(final long index) {
@@ -661,6 +665,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            collection containing elements to be added to this list
      * @return <tt>true</tt> if this list changed as a result of the call
      * @throws IndexOutOfBoundsException
+     *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @throws NullPointerException
      *             if the specified collection is null
      * @see #addAll(int, Collection)
@@ -707,8 +712,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @param toIndex
      *            index after last element to be removed
      * @throws IndexOutOfBoundsException
-     *             if fromIndex or toIndex out of range (fromIndex &lt; 0 || fromIndex &gt;= size() || toIndex &gt;
-     *             size() || toIndex &lt; fromIndex)
+     *             if fromIndex or toIndex out of range
+     *             <code>(fromIndex < 0 || fromIndex >= size() || toIndex >= size() || toIndex < fromIndex)</code>
      */
     @Override
     protected void removeRange(final int fromIndex, final int toIndex) {
@@ -737,8 +742,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @param toIndex
      *            index after last element to be removed
      * @throws IndexOutOfBoundsException
-     *             if fromIndex or toIndex out of range (fromIndex &lt; 0 || fromIndex &gt;= size() || toIndex &gt;
-     *             size() || toIndex &lt; fromIndex)
+     *             if fromIndex or toIndex out of range
+     *             <code>(fromIndex < 0 || fromIndex >= size() || toIndex >= size() || toIndex < fromIndex)</code>
      */
     protected void removeRange(final long fromIndex, final long toIndex) {
         moveBackward(fromIndex, this.size - toIndex);
@@ -747,12 +752,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
     }
 
     /**
-     * Checks if the given index is in range. If not, throws an appropriate runtime exception. This method does *not*
-     * check if the index is negative: It is always used immediately prior to an array access, which throws an
-     * ArrayIndexOutOfBoundsException if index is negative.
+     * Checks if the given index is in range. If not, throws an IndexOutOfBoundsException.
      */
     private void rangeCheck(final long index) {
-        if (index >= this.size)
+        if (index < 0 || index >= this.size)
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
     }
 

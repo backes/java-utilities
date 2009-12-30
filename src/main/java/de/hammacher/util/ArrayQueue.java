@@ -389,7 +389,7 @@ public class ArrayQueue<E> extends AbstractCollection<E> implements Queue<E>,
      *
      * @return the element at the front of this queue (which is the top of the
      *         stack represented by this queue)
-     * @throws NoSuchElementException
+     * @throws NoSuchElementException if the queue is empty
      */
     public E pop() {
         return removeFirst();

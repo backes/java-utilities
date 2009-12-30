@@ -20,7 +20,6 @@ public interface Filter<T> {
 		/**
 		 * Returns a singleton instance of FilterAll.
 		 *
-		 * @param <T>
 		 * @return a singleton instance of FilterAll
 		 */
 		@SuppressWarnings("unchecked")
@@ -45,7 +44,6 @@ public interface Filter<T> {
 		/**
 		 * Returns a singleton instance of FilterNone.
 		 *
-		 * @param <T>
 		 * @return a singleton instance of FilterNone
 		 */
 		@SuppressWarnings("unchecked")

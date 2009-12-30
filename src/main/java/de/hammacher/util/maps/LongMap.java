@@ -64,15 +64,11 @@ public class LongMap<V> implements Map<Long, V>, Cloneable {
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     *
-     * @serial
      */
     private int mapThreshold;
 
     /**
      * The load factor for the hash table.
-     *
-     * @serial
      */
     private final float loadFactor;
 

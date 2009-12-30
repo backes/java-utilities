@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
  * An adapter for a queue to add blocking support.
  *
  * @author Clemens Hammacher
- * @param <E>
  */
 public class BlockingQueueWrapper<E>
 		extends AbstractQueue<E>
