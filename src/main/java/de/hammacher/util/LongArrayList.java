@@ -29,7 +29,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @exception IllegalArgumentException
      *                if the specified initial capacity is negative
      */
-    public LongArrayList(final long initialCapacity) {
+    public LongArrayList(long initialCapacity) {
         super();
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal Capacity: " + initialCapacity);
@@ -58,8 +58,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @throws NullPointerException
      *             if the specified collection is null
      */
-    public LongArrayList(final Collection<? extends T> c) {
-        final int cSize = c.size();
+    public LongArrayList(Collection<? extends T> c) {
+        int cSize = c.size();
         if (cSize < maxElementsPerArray) {
             this.elements = newArray(1);
             this.elements[0] = c.toArray(newSubArray(cSize));
@@ -79,8 +79,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      */
     public void trimToSize() {
         this.modCount++;
-        final int neededCap1 = (int) (this.size >>> 34) + 1;
-        final int neededCap2 = ((int)this.size) & lowerArrayMask;
+        int neededCap1 = (int) (this.size >>> 34) + 1;
+        int neededCap2 = ((int)this.size) & lowerArrayMask;
         if (neededCap1 != this.elements.length)
             this.elements = copyArray(this.elements, neededCap1);
         if (neededCap2 != this.elements[neededCap1-1].length)
@@ -95,15 +95,15 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @param minCapacity
      *            the desired minimum capacity
      */
-    public void ensureCapacity(final long minCapacity) {
+    public void ensureCapacity(long minCapacity) {
         this.modCount++;
         int neededCap1 = (int) (minCapacity >>> 34) + 1;
         int neededCap2 = ((int)minCapacity) & lowerArrayMask;
         if (neededCap1 > this.elements.length) {
-            final long newCapacity = Math.max(this.size*4/3+1, minCapacity);
+            long newCapacity = Math.max(this.size*4/3+1, minCapacity);
             neededCap1 = (int) (newCapacity >>> 34) + 1;
             neededCap2 = ((int)newCapacity) & lowerArrayMask;
-            final T[][] newElements = newArray(neededCap1);
+            T[][] newElements = newArray(neededCap1);
             System.arraycopy(this.elements, 0, newElements, 0, this.elements.length-1);
             if (this.elements[this.elements.length-1].length == maxElementsPerArray)
                 newElements[this.elements.length-1] = this.elements[this.elements.length-1];
@@ -114,7 +114,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
             }
             this.elements = newElements;
         } else if (neededCap1 == this.elements.length && neededCap2 > this.elements[neededCap1-1].length) {
-            final long newCapacity = Math.max(this.size*4/3+1, minCapacity);
+            long newCapacity = Math.max(this.size*4/3+1, minCapacity);
             if ((newCapacity >>> 34) + 1 == neededCap1)
                 neededCap2 = ((int)newCapacity) & lowerArrayMask;
             else
@@ -165,7 +165,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @return <tt>true</tt> if this list contains the specified element
      */
     @Override
-    public boolean contains(final Object o) {
+    public boolean contains(Object o) {
         return indexOf(o) >= 0;
     }
 
@@ -176,7 +176,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * or -1 if there is no such index.
      */
     @Override
-    public int indexOf(final Object o) {
+    public int indexOf(Object o) {
         return (int)longIndexOf(o, Integer.MAX_VALUE);
     }
 
@@ -185,11 +185,11 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * contain the element. More formally, returns the lowest index <tt>i</tt> such that
      * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or -1 if there is no such index.
      */
-    public long longIndexOf(final Object o) {
+    public long longIndexOf(Object o) {
         return longIndexOf(o, this.size);
     }
 
-    private long longIndexOf(final Object o, final long searchSize) {
+    private long longIndexOf(Object o, long searchSize) {
         int pos1 = 0, pos2 = 0;
         Object[] lowArr = this.elements[0];
         if (o == null) {
@@ -221,7 +221,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * or -1 if there is no such index.
      */
     @Override
-    public int lastIndexOf(final Object o) {
+    public int lastIndexOf(Object o) {
         return (int)longLastIndexOf(o, Integer.MAX_VALUE);
     }
 
@@ -230,11 +230,11 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * contain the element. More formally, returns the highest index <tt>i</tt> such that
      * <tt>(o==null&nbsp;?&nbsp;get(i)==null&nbsp;:&nbsp;o.equals(get(i)))</tt>, or -1 if there is no such index.
      */
-    public long longLastIndexOf(final Object o) {
+    public long longLastIndexOf(Object o) {
         return longLastIndexOf(o, this.size);
     }
 
-    private long longLastIndexOf(final Object o, final long searchSize) {
+    private long longLastIndexOf(Object o, long searchSize) {
         int pos1 = (int) (searchSize >>> 34);
         int pos2 = ((int)searchSize) & lowerArrayMask;
         Object[] lowArr = this.elements[pos1];
@@ -269,12 +269,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
     @Override
     public Object clone() {
         try {
-            final LongArrayList<T> v = (LongArrayList<T>) super.clone();
+            LongArrayList<T> v = (LongArrayList<T>) super.clone();
             v.elements = newArray(this.elements.length);
             for (int i = 0; i < this.elements.length; ++i)
                 v.elements[i] = copySubArray(this.elements[i], maxElementsPerArray);
             return v;
-        } catch (final CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException e) {
             // this shouldn't happen, since we are Cloneable
             throw new InternalError(e.toString());
         }
@@ -321,8 +321,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      */
     @SuppressWarnings("unchecked")
     @Override
-    public <T2> T2[] toArray(final T2[] a) {
-        final int length = (int) Math.min(this.size, maxElementsPerArray);
+    public <T2> T2[] toArray(T2[] a) {
+        int length = (int) Math.min(this.size, maxElementsPerArray);
         if (a.length < length) {
             // Make a new array of a's runtime type, but my contents:
             return (T2[]) copyArrayGeneric(this.elements[0], length, a.getClass());
@@ -345,7 +345,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             {@inheritDoc}
      */
     @Override
-    public T get(final int index) {
+    public T get(int index) {
         if (index < maxElementsPerArray) {
             rangeCheck(index);
             return this.elements[0][index];
@@ -363,10 +363,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #get(int)
      */
-    public T get(final long index) {
+    public T get(long index) {
         rangeCheck(index);
-        final int pos1 = (int) (index >>> 34);
-        final int pos2 = ((int)index) & lowerArrayMask;
+        int pos1 = (int) (index >>> 34);
+        int pos2 = ((int)index) & lowerArrayMask;
         return this.elements[pos1][pos2];
     }
 
@@ -382,10 +382,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             {@inheritDoc}
      */
     @Override
-    public T set(final int index, final T element) {
+    public T set(int index, T element) {
         if (index < maxElementsPerArray) {
             rangeCheck(index);
-            final T oldValue = this.elements[0][index];
+            T oldValue = this.elements[0][index];
             this.elements[0][index] = element;
             return oldValue;
         }
@@ -404,12 +404,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #set(int, Object)
      */
-    public T set(final long index, final T element) {
+    public T set(long index, T element) {
         rangeCheck(index);
 
-        final int pos1 = (int) (index >> 34);
-        final int pos2 = ((int)index) & lowerArrayMask;
-        final T oldValue = this.elements[pos1][pos2];
+        int pos1 = (int) (index >> 34);
+        int pos2 = ((int)index) & lowerArrayMask;
+        T oldValue = this.elements[pos1][pos2];
         this.elements[pos1][pos2] = element;
         return oldValue;
     }
@@ -422,10 +422,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @return <tt>true</tt> (as specified by {@link Collection#add})
      */
     @Override
-    public boolean add(final T e) {
+    public boolean add(T e) {
         ensureCapacity(this.size + 1); // Increments modCount!!
-        final int pos1 = (int) (this.size >>> 34);
-        final int pos2 = ((int)this.size) & lowerArrayMask;
+        int pos1 = (int) (this.size >>> 34);
+        int pos2 = ((int)this.size) & lowerArrayMask;
         this.elements[pos1][pos2] = e;
         ++this.size;
         return true;
@@ -443,7 +443,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             {@inheritDoc}
      */
     @Override
-    public void add(final int index, final T element) {
+    public void add(int index, T element) {
         if (this.size < maxElementsPerArray) {
             if (index > (int)this.size || index < 0)
                 throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
@@ -469,24 +469,24 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #add(int, Object)
      */
-    public void add(final long index, final T element) {
+    public void add(long index, T element) {
         if (index > this.size || index < 0)
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
 
         moveForward(index, 1); // Increments modCount!!
-        final int pos1 = (int) (index >>> 34);
-        final int pos2 = ((int)index) & lowerArrayMask;
+        int pos1 = (int) (index >>> 34);
+        int pos2 = ((int)index) & lowerArrayMask;
         this.elements[pos1][pos2] = element;
         ++this.size;
     }
 
-    private void moveForward(final long index, final int amount) {
+    private void moveForward(long index, int amount) {
         ensureCapacity(this.size + amount); // Increments modCount!!
         for (long pos = this.size; pos > index; ) {
-            final int newPos1 = (int) ((pos+amount) >>> 34);
-            final int newPos2 = ((int)(pos+amount)) & lowerArrayMask;
-            final int oldPos1 = (int) (pos >>> 34);
-            final int oldPos2 = (int)pos & lowerArrayMask;
+            int newPos1 = (int) ((pos+amount) >>> 34);
+            int newPos2 = ((int)(pos+amount)) & lowerArrayMask;
+            int oldPos1 = (int) (pos >>> 34);
+            int oldPos2 = (int)pos & lowerArrayMask;
             int copy = Math.min(oldPos2, newPos2);
             if (pos - index < copy)
                 copy = (int) (pos - index);
@@ -495,19 +495,53 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         }
     }
 
-    private void moveBackward(final long index, final long amount) {
+    private void moveBackward(long index, long amount) {
         ++this.modCount;
         for (long pos = index; pos < this.size; ) {
-            final int newPos1 = (int) ((pos-amount) >>> 34);
-            final int newPos2 = ((int)(pos-amount)) & lowerArrayMask;
-            final int oldPos1 = (int) (pos >>> 34);
-            final int oldPos2 = (int)pos & lowerArrayMask;
+            int newPos1 = (int) ((pos-amount) >>> 34);
+            int newPos2 = ((int)(pos-amount)) & lowerArrayMask;
+            int oldPos1 = (int) (pos >>> 34);
+            int oldPos2 = (int)pos & lowerArrayMask;
             int copy = maxElementsPerArray - Math.max(oldPos2, newPos2);
             if (this.size - pos < copy)
                 copy = (int) (this.size - pos);
             System.arraycopy(this.elements[oldPos1], oldPos2, this.elements[newPos1], newPos2, copy);
             Arrays.fill(this.elements[oldPos1], oldPos2, oldPos2 + copy, null);
             pos += copy;
+        }
+    }
+
+    public void setRange(long fromIndex, long toIndex, T value) {
+        ++this.modCount;
+        // remember the range which is already set to value
+        // this information is used to copy the already set range, and double
+        // its size in each step.
+        T[] set = null;
+        int setStart = 0;
+        int setAmount = 0;
+        for (long pos = fromIndex; pos < toIndex; ) {
+            int pos1 = (int) (pos >>> 34);
+            int pos2 = (int)pos & lowerArrayMask;
+            int remainingInThisSlot = maxElementsPerArray - pos2;
+            if (this.size - pos < remainingInThisSlot)
+                remainingInThisSlot = (int) (this.size - pos);
+            if (remainingInThisSlot < 16 || setAmount == 0) {
+                if (remainingInThisSlot >= 16) {
+                    set = this.elements[pos1];
+                    setStart = pos2;
+                    setAmount = 16;
+                }
+                for (long i = pos2; i < pos2 + remainingInThisSlot; ++i)
+                    this.elements[pos1][pos2] = value;
+                pos += remainingInThisSlot;
+            } else {
+                int copy = Math.min(2*setAmount, remainingInThisSlot);
+                System.arraycopy(set, setStart, this.elements[pos1], pos2, copy);
+                pos += copy;
+                set = this.elements[pos1];
+                setStart = pos2;
+                setAmount = copy;
+            }
         }
     }
 
@@ -522,12 +556,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             {@inheritDoc}
      */
     @Override
-    public T remove(final int index) {
+    public T remove(int index) {
         if (this.size <= maxElementsPerArray) {
             rangeCheck(index);
             ++this.modCount;
-            final T oldValue = this.elements[0][index];
-            final int numMoved = (int)this.size - index - 1;
+            T oldValue = this.elements[0][index];
+            int numMoved = (int)this.size - index - 1;
             if (numMoved > 0)
                 System.arraycopy(this.elements[0], index + 1, this.elements[0], index, numMoved);
             this.elements[0][(int)--this.size] = null;
@@ -549,12 +583,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *            if the index is out of range <code>(index < 0 || index > size())</code>
      * @see #remove(int)
      */
-    public T remove(final long index) {
+    public T remove(long index) {
         rangeCheck(index);
 
-        final int pos1 = (int) (index >> 34);
-        final int pos2 = ((int)index) & lowerArrayMask;
-        final T oldElement = this.elements[pos1][pos2];
+        int pos1 = (int) (index >> 34);
+        int pos2 = ((int)index) & lowerArrayMask;
+        T oldElement = this.elements[pos1][pos2];
         moveBackward(index, 1); // increments modCount
         --this.size;
         return oldElement;
@@ -572,8 +606,8 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @return <tt>true</tt> if this list contained the specified element
      */
     @Override
-    public boolean remove(final Object o) {
-        final int index = indexOf(o);
+    public boolean remove(Object o) {
+        int index = indexOf(o);
         if (index == -1)
             return false;
         remove(index);
@@ -603,10 +637,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             if the specified collection is null
      */
     @Override
-    public boolean addAll(final Collection<? extends T> c) {
+    public boolean addAll(Collection<? extends T> c) {
         if (this.size + c.size() <= maxElementsPerArray) {
-            final Object[] a = c.toArray();
-            final int numNew = a.length;
+            Object[] a = c.toArray();
+            int numNew = a.length;
             if (this.size + a.length <= maxElementsPerArray) {
                 ensureCapacity(this.size + numNew); // Increments modCount
                 System.arraycopy(a, 0, this.elements[0], (int)this.size, numNew);
@@ -635,12 +669,12 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             if the specified collection is null
      */
     @Override
-    public boolean addAll(final int index, final Collection<? extends T> c) {
+    public boolean addAll(int index, Collection<? extends T> c) {
         if (this.size + c.size() <= maxElementsPerArray) {
             if (index > (int)this.size || index < 0)
                 throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
-            final Object[] a = c.toArray();
-            final int numNew = a.length;
+            Object[] a = c.toArray();
+            int numNew = a.length;
             if (this.size + a.length <= maxElementsPerArray) {
                 ensureCapacity(this.size + numNew); // Increments modCount
                 System.arraycopy(this.elements[0], index, this.elements[0], index + numNew, (int) (this.size - index));
@@ -670,13 +704,13 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             if the specified collection is null
      * @see #addAll(int, Collection)
      */
-    public boolean addAll(final long index, final Collection<? extends T> c) {
+    public boolean addAll(long index, Collection<? extends T> c) {
         if (index > this.size || index < 0)
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
 
         if (c.size() < Integer.MAX_VALUE) {
-            final Object[] a = c.toArray();
-            final int numNew = a.length;
+            Object[] a = c.toArray();
+            int numNew = a.length;
             if (a.length < Integer.MAX_VALUE) {
                 moveForward(index, numNew); // increments modCount
                 int pos1 = (int) (index >>> 34);
@@ -695,7 +729,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         }
 
         long i = index;
-        for (final T t: c) {
+        for (T t: c) {
             add(i++, t);
         }
         return i != index;
@@ -716,16 +750,16 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             <code>(fromIndex < 0 || fromIndex >= size() || toIndex >= size() || toIndex < fromIndex)</code>
      */
     @Override
-    protected void removeRange(final int fromIndex, final int toIndex) {
+    public void removeRange(int fromIndex, int toIndex) {
         if (this.size <= maxElementsPerArray) {
             rangeCheck(fromIndex);
             rangeCheck(toIndex);
             ++this.modCount;
-            final int numMoved = (int)this.size - toIndex;
+            int numMoved = (int)this.size - toIndex;
             if (numMoved > 0)
                 System.arraycopy(this.elements[0], toIndex, this.elements[0], fromIndex, numMoved);
-            Arrays.fill(this.elements[0], fromIndex+numMoved, (int)this.size, null);
-            this.size -= toIndex - fromIndex;
+            setRange(fromIndex+numMoved, this.size, null); // null out the removed elements
+            this.size = fromIndex+numMoved;
         } else {
             removeRange((long)fromIndex, (long)toIndex);
         }
@@ -745,16 +779,19 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      *             if fromIndex or toIndex out of range
      *             <code>(fromIndex < 0 || fromIndex >= size() || toIndex >= size() || toIndex < fromIndex)</code>
      */
-    protected void removeRange(final long fromIndex, final long toIndex) {
+    public void removeRange(long fromIndex, long toIndex) {
+        rangeCheck(fromIndex);
+        rangeCheck(toIndex);
         moveBackward(fromIndex, this.size - toIndex);
-        // TODO null out elements
-        this.size -= toIndex - fromIndex;
+        long newSize = this.size - toIndex + fromIndex;
+        setRange(newSize, this.size, null); // null out the removed elements
+        this.size = newSize;
     }
 
     /**
      * Checks if the given index is in range. If not, throws an IndexOutOfBoundsException.
      */
-    private void rangeCheck(final long index) {
+    private void rangeCheck(long index) {
         if (index < 0 || index >= this.size)
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + this.size);
     }
@@ -765,9 +802,9 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @serialData The length of the array backing the <tt>LongArrayList</tt> instance is emitted (int), followed by all of
      *             its elements (each an <tt>Object</tt>) in the proper order.
      */
-    private void writeObject(final java.io.ObjectOutputStream s) throws java.io.IOException {
+    private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
         // Write out element count, and any hidden stuff
-        final int expectedModCount = this.modCount;
+        int expectedModCount = this.modCount;
         s.defaultWriteObject();
 
         // Write out array length
@@ -792,13 +829,13 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
     /**
      * Reconstitute the <tt>ArrayList</tt> instance from a stream (that is, deserialize it).
      */
-    private void readObject(final java.io.ObjectInputStream s) throws java.io.IOException, ClassNotFoundException {
+    private void readObject(java.io.ObjectInputStream s) throws java.io.IOException, ClassNotFoundException {
         // Read in size, and any hidden stuff
         s.defaultReadObject();
 
         // Read in array length and allocate array
-        final int arrayLength1 = s.readInt();
-        final int arrayLength2 = s.readInt();
+        int arrayLength1 = s.readInt();
+        int arrayLength2 = s.readInt();
         this.elements = newArray(arrayLength1);
         for (int i = 0; i < arrayLength1-1; ++i)
             this.elements[i] = newSubArray(maxElementsPerArray);
@@ -817,34 +854,34 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
     }
 
     @SuppressWarnings("unchecked")
-    private T[][] newArray(final int length) {
+    private T[][] newArray(int length) {
         return (T[][]) new Object[length][];
     }
     @SuppressWarnings("unchecked")
-    private T[] newSubArray(final int length) {
+    private T[] newSubArray(int length) {
         return (T[]) new Object[length];
     }
     @SuppressWarnings("unchecked")
-    private T[][] new2DimArray(final int length1, final int length2) {
+    private T[][] new2DimArray(int length1, int length2) {
         return (T[][]) new Object[length1][length2];
     }
 
-    private T[] copySubArray(final T[] original, final int newLength) {
-        final T[] copy = newSubArray(newLength);
+    private T[] copySubArray(T[] original, int newLength) {
+        T[] copy = newSubArray(newLength);
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
         return copy;
     }
-    private T[][] copyArray(final T[][] original, final int newLength) {
-        final T[][] copy = newArray(newLength);
+    private T[][] copyArray(T[][] original, int newLength) {
+        T[][] copy = newArray(newLength);
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
         return copy;
     }
     @SuppressWarnings("unchecked")
-    private static <T> T[] copyArrayGeneric(final T[] original, final int newLength,
-            final Class<? extends T> newType) {
-        final T[] copy = newType == Object.class ? (T[]) new Object[newLength]
+    private static <T> T[] copyArrayGeneric(T[] original, int newLength,
+            Class<? extends T> newType) {
+        T[] copy = newType == Object.class ? (T[]) new Object[newLength]
             : (T[]) Array.newInstance(newType, newLength);
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
@@ -914,7 +951,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
      * @see #modCount
      */
     @Override
-    public ListIterator<T> listIterator(final int index) {
+    public ListIterator<T> listIterator(int index) {
         if (index < 0 || index > size())
             throw new IndexOutOfBoundsException("Index: " + index);
 
@@ -955,10 +992,10 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         public T next() {
             checkForComodification();
             try {
-                final T next = get(this.cursor);
+                T next = get(this.cursor);
                 this.lastRet = this.cursor++;
                 return next;
-            } catch (final IndexOutOfBoundsException e) {
+            } catch (IndexOutOfBoundsException e) {
                 checkForComodification();
                 throw new NoSuchElementException();
             }
@@ -975,7 +1012,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
                     this.cursor--;
                 this.lastRet = -1;
                 this.expectedModCount = getModCount();
-            } catch (final IndexOutOfBoundsException e) {
+            } catch (IndexOutOfBoundsException e) {
                 throw new ConcurrentModificationException();
             }
         }
@@ -988,7 +1025,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
 
     private class ListItr extends Itr implements ListIterator<T> {
 
-        protected ListItr(final long index) {
+        protected ListItr(long index) {
             this.cursor = index;
         }
 
@@ -999,11 +1036,11 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
         public T previous() {
             checkForComodification();
             try {
-                final long i = this.cursor - 1;
-                final T previous = get(i);
+                long i = this.cursor - 1;
+                T previous = get(i);
                 this.lastRet = this.cursor = i;
                 return previous;
-            } catch (final IndexOutOfBoundsException e) {
+            } catch (IndexOutOfBoundsException e) {
                 checkForComodification();
                 throw new NoSuchElementException();
             }
@@ -1021,7 +1058,7 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
             return (int) (this.cursor-1);
         }
 
-        public void set(final T e) {
+        public void set(T e) {
             if (this.lastRet == -1)
                 throw new IllegalStateException();
             checkForComodification();
@@ -1029,19 +1066,19 @@ public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, C
             try {
                 LongArrayList.this.set(this.lastRet, e);
                 this.expectedModCount = getModCount();
-            } catch (final IndexOutOfBoundsException ex) {
+            } catch (IndexOutOfBoundsException ex) {
                 throw new ConcurrentModificationException();
             }
         }
 
-        public void add(final T e) {
+        public void add(T e) {
             checkForComodification();
 
             try {
                 LongArrayList.this.add(this.cursor++, e);
                 this.lastRet = -1;
                 this.expectedModCount = getModCount();
-            } catch (final IndexOutOfBoundsException ex) {
+            } catch (IndexOutOfBoundsException ex) {
                 throw new ConcurrentModificationException();
             }
         }
