@@ -37,6 +37,8 @@ import java.io.Writer;
 import java.util.Date;
 import java.util.Vector;
 
+import de.hammacher.util.Diff.change;
+
 //import com.objectspace.jgl.predicates.UnaryPredicate;
 
 interface UnaryPredicate {
@@ -339,8 +341,16 @@ public class DiffPrint {
 
         protected int context = 3;
 
-        public ContextPrint(final Object[] a, final Object[] b) {
-            super(a, b);
+        public ContextPrint(final Object[] file0, final Object[] file1) {
+            super(file0, file1);
+        }
+
+        public void setContext(int newContext) {
+            this.context = Math.max(0, newContext);
+        }
+
+        public int getContext() {
+            return this.context;
         }
 
         protected void print_context_label(final String mark, final File inf, final String label) {
@@ -475,8 +485,8 @@ public class DiffPrint {
      */
     public static class UnifiedPrint extends ContextPrint {
 
-        public UnifiedPrint(final Object[] a, final Object[] b) {
-            super(a, b);
+        public UnifiedPrint(final Object[] file0, final Object[] file1) {
+            super(file0, file1);
         }
 
         @Override
@@ -560,6 +570,35 @@ public class DiffPrint {
                     next = next.link;
                 }
             }
+        }
+    }
+
+    public static class SimplestPrint extends Base {
+
+        public SimplestPrint(Object[] file0, Object[] file1) {
+            super(file0, file1);
+        }
+
+        @Override
+        protected void print_hunk(change hunk) {
+            /* Determine range of line numbers involved in each file. */
+            analyze_hunk(hunk);
+            if (this.deletes == 0 && this.inserts == 0)
+                return;
+
+            /* Print the lines that were expected but did not occur. */
+            if (this.deletes != 0)
+                for (int i = this.first0; i <= this.last0; i++) {
+                    Object exp = this.file0[i];
+                    print_1_line("- ", exp);
+                }
+
+            /* Print the lines that the second file has. */
+            if (this.inserts != 0)
+                for (int i = this.first1; i <= this.last1; i++) {
+                    Object exp = this.file1[i];
+                    print_1_line("+ ", exp);
+                }
         }
     }
 

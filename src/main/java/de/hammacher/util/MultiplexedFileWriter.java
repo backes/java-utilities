@@ -709,33 +709,45 @@ public class MultiplexedFileWriter {
         this.byteOrder = byteOrder;
         this.blockSize = blockSize;
 
-        this.file = new RandomAccessFile(filename, "rw");
-        this.file.seek(0);
-        this.fileChannel = this.file.getChannel();
-        // first, reset the file channel
-        this.fileChannel.position(0);
-        this.fileLengthBlocks = useMemoryMapping ? 0 : Math.max(1000, 10*1024*1024/blockSize);
-        this.file.setLength(headerSize+(long)this.fileLengthBlocks*this.blockSize);
-        // zero out the magic header
-        this.fileChannel.write(ByteBuffer.allocate(headerSize), 0);
+        RandomAccessFile file0 = null;
+        FileChannel fileChannel0 = null;
+        try {
+            this.file = file0 = new RandomAccessFile(filename, "rw");
+            this.file.seek(0);
+            this.fileChannel = fileChannel0 = this.file.getChannel();
+            // first, reset the file channel
+            this.fileChannel.position(0);
+            this.fileLengthBlocks = useMemoryMapping ? 0 : Math.max(1000, 10*1024*1024/blockSize);
+            this.file.setLength(headerSize+(long)this.fileLengthBlocks*this.blockSize);
+            // zero out the magic header
+            this.fileChannel.write(ByteBuffer.allocate(headerSize), 0);
 
-        final ConcurrentReferenceHashMap<MultiplexOutputStream, InnerOutputStream> openStreamsTmp = new ConcurrentReferenceHashMap<MultiplexOutputStream, InnerOutputStream>(
-            65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
-            EnumSet.of(Option.IDENTITY_COMPARISONS));
-        openStreamsTmp.addRemoveStaleListener(new RemoveStaleListener<InnerOutputStream>() {
-            public void removed(final InnerOutputStream removedValue) {
-                try {
-                    removedValue.close();
-                } catch (final IOException e) {
-                    if (MultiplexedFileWriter.this.exception == null)
-                        MultiplexedFileWriter.this.exception = e;
+            final ConcurrentReferenceHashMap<MultiplexOutputStream, InnerOutputStream> openStreamsTmp = new ConcurrentReferenceHashMap<MultiplexOutputStream, InnerOutputStream>(
+                65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
+                EnumSet.of(Option.IDENTITY_COMPARISONS));
+            openStreamsTmp.addRemoveStaleListener(new RemoveStaleListener<InnerOutputStream>() {
+                public void removed(final InnerOutputStream removedValue) {
+                    try {
+                        removedValue.close();
+                    } catch (final IOException e) {
+                        if (MultiplexedFileWriter.this.exception == null)
+                            MultiplexedFileWriter.this.exception = e;
+                    }
                 }
-            }
-        });
+            });
 
-        this.openStreams = openStreamsTmp;
-        this.streamDefs = new MultiplexOutputStream(-1);
-        this.streamDefsDataOut = new MyDataOutputStream(this.streamDefs);
+            this.openStreams = openStreamsTmp;
+            this.streamDefs = new MultiplexOutputStream(-1);
+            this.streamDefsDataOut = new MyDataOutputStream(this.streamDefs);
+            // no error:
+            file0 = null;
+            fileChannel0 = null;
+        } finally {
+            if (fileChannel0 != null)
+                fileChannel0.close();
+            if (file0 != null)
+                file0.close();
+        }
     }
 
     /**
@@ -1022,7 +1034,7 @@ public class MultiplexedFileWriter {
                     if (e.getMessage() == null || !e.getMessage().contains("user-mapped"))
                         throw e;
                     // consume some more memory to motivate the garbage collector to clear the mappings
-                    memoryConsumingList.add(new byte[1024*1024]); // consumes 1 MB
+                    memoryConsumingList.add(new byte[1024]); // consumes 1 kB
                 }
             }
             memoryConsumingList = null;

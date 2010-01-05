@@ -72,40 +72,48 @@ public class MultiplexedFileTest {
 	}
 
 	@Before
-	public void setUp() throws IOException {
-		this.tmpFileName = File.createTempFile("multiplexed-test-", ".dat");
-		this.rand = new Random(this.seed);
-		this.blockSize = 8 << this.rand.nextInt(16);
-		this.useMemMap = MultiplexedFileReader.is64bitVM && this.rand.nextBoolean();
-		this.byteOrder = this.rand.nextBoolean() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
-		this.autoFlush = this.rand.nextBoolean();
+	public void setUp() throws Exception {
+	    try {
+    		this.tmpFileName = File.createTempFile("multiplexed-test-", ".dat");
+    		this.rand = new Random(this.seed);
+    		this.blockSize = 8 << this.rand.nextInt(16);
+    		this.useMemMap = MultiplexedFileReader.is64bitVM && this.rand.nextBoolean();
+    		this.byteOrder = this.rand.nextBoolean() ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
+    		this.autoFlush = this.rand.nextBoolean();
 
-		this.mWriter = new MultiplexedFileWriter(this.tmpFileName, this.blockSize, this.useMemMap,
-			this.byteOrder, this.autoFlush);
+    		this.mWriter = new MultiplexedFileWriter(this.tmpFileName, this.blockSize, this.useMemMap,
+    			this.byteOrder, this.autoFlush);
 
-		this.outStreams = new MultiplexOutputStream[this.num];
-		this.bytes = new byte[this.num][];
-		this.streamIds = new int[this.num];
-		for (int i = 0; i < this.num; ++i) {
-			this.outStreams[i] = this.mWriter.newOutputStream();
-			this.streamIds[i] = this.outStreams[i].getId();
-			this.bytes[i] = new byte[this.rand.nextInt(128*i+1)];
-			this.rand.nextBytes(this.bytes[i]);
-			if (this.rand.nextBoolean()) {
-				this.outStreams[i].write(this.bytes[i]);
-			} else {
-				for (int k = 0; k < this.bytes[i].length; ++k) {
-					this.outStreams[i].write(this.bytes[i][k]);
-				}
-			}
-		}
+    		this.outStreams = new MultiplexOutputStream[this.num];
+    		this.bytes = new byte[this.num][];
+    		this.streamIds = new int[this.num];
+    		for (int i = 0; i < this.num; ++i) {
+    			this.outStreams[i] = this.mWriter.newOutputStream();
+    			this.streamIds[i] = this.outStreams[i].getId();
+    			this.bytes[i] = new byte[this.rand.nextInt(128*i+1)];
+    			this.rand.nextBytes(this.bytes[i]);
+    			if (this.rand.nextBoolean()) {
+    				this.outStreams[i].write(this.bytes[i]);
+    			} else {
+    				for (int k = 0; k < this.bytes[i].length; ++k) {
+    					this.outStreams[i].write(this.bytes[i][k]);
+    				}
+    			}
+    		}
+        } catch (Throwable t) {
+            throw new Exception("Error for seed "+this.seed+", num "+this.num, t);
+        }
 	}
 
 	@After
-	public void tearDown() throws IOException {
-		if (this.mWriter != null)
-			this.mWriter.close();
-		this.tmpFileName.delete();
+	public void tearDown() throws Exception {
+	    try {
+    		if (this.mWriter != null)
+    			this.mWriter.close();
+            this.tmpFileName.delete(); // try delete, but this may fail (e.g. if some mapping is active)
+        } catch (Throwable t) {
+            throw new Exception("Error for seed "+this.seed+", num "+this.num, t);
+        }
 	}
 
 	@Test
