@@ -232,6 +232,7 @@ public class Graph2Dot<NodeType extends Node<NodeType>> {
 	        		buffer = appendToBuffer(buffer, bufPos++, '\\');
 	        		buffer = appendToBuffer(buffer, bufPos++, 'n');
         		}
+                hasSpecial = true;
                 continue;
 
             default:
