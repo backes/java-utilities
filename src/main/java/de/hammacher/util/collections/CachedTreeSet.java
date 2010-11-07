@@ -20,7 +20,7 @@ import java.util.TreeSet;
 public class CachedTreeSet<E> extends TreeSet<E> {
 
 
-	public class Itr<T> implements Iterator<E> {
+	private static class Itr<E> implements Iterator<E> {
 
 		private final E[] entries;
 		private int cursor = 0;
@@ -90,20 +90,12 @@ public class CachedTreeSet<E> extends TreeSet<E> {
 
 	@Override
 	public boolean add(E o) {
-		if (super.add(o)) {
-			this.cachedEntries = null;
-			return true;
-		}
-		return false;
+		return modification(super.add(o));
 	}
 
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
-		if (super.addAll(c)) {
-			this.cachedEntries = null;
-			return true;
-		}
-		return false;
+		return modification(super.addAll(c));
 	}
 
 	@Override
@@ -114,29 +106,23 @@ public class CachedTreeSet<E> extends TreeSet<E> {
 
 	@Override
 	public boolean remove(Object o) {
-		if (super.remove(o)) {
-			this.cachedEntries = null;
-			return true;
-		}
-		return false;
+		return modification(super.remove(o));
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		if (super.removeAll(c)) {
-			this.cachedEntries = null;
-			return true;
-		}
-		return false;
+		return modification(super.removeAll(c));
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
-		if (super.retainAll(c)) {
+		return modification(super.retainAll(c));
+	}
+
+	private boolean modification(boolean modified) {
+		if (modified)
 			this.cachedEntries = null;
-			return true;
-		}
-		return false;
+		return modified;
 	}
 
 }
