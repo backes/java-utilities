@@ -10,6 +10,13 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.RandomAccess;
 
+/**
+ * A List implementation which stores elements in arrays internally, but allows much more than 2^31 elements (which is ArrayList's limitation).
+ *
+ * @author Clemens Hammacher
+ *
+ * @param <T> the element type
+ */
 public class LongArrayList<T> extends AbstractList<T> implements RandomAccess, Cloneable, java.io.Serializable {
 
     private static final long serialVersionUID = 4585266173348382453L;
