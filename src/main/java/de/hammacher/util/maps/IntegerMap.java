@@ -133,6 +133,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *
      * @return the number of key-value mappings in this map
      */
+    @Override
     public int size() {
         return this.size;
     }
@@ -142,6 +143,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *
      * @return <tt>true</tt> if this map contains no key-value mappings
      */
+    @Override
     public boolean isEmpty() {
         return this.size == 0;
     }
@@ -162,6 +164,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *
      * @see #put(Object, Object)
      */
+    @Override
     public V get(final Object key) {
         if (key instanceof Integer)
             return get(((Integer) key).intValue());
@@ -189,6 +192,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *            The key whose presence in this map is to be tested
      * @return <tt>true</tt> if this map contains a mapping for the specified key.
      */
+    @Override
     public boolean containsKey(final Object key) {
         return key instanceof Integer ? containsKey(((Integer)key).intValue()) : false;
     }
@@ -224,6 +228,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @return the previous value associated with <tt>key</tt>, or <tt>null</tt> if there was no mapping for
      *         <tt>key</tt>.
      */
+    @Override
     public V put(final Integer key, final V value) {
         return put(key.intValue(), value);
     }
@@ -383,6 +388,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * @throws NullPointerException
      *             if the specified map is null
      */
+    @Override
     public void putAll(final Map<? extends Integer, ? extends V> m) {
         for (final Map.Entry<? extends Integer, ? extends V> e : m.entrySet())
             put(e.getKey(), e.getValue());
@@ -397,6 +403,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *         <tt>key</tt>. (A <tt>null</tt> return can also indicate that the map previously associated
      *         <tt>null</tt> with <tt>key</tt>.)
      */
+    @Override
     public V remove(final Object key) {
         if (key instanceof Integer)
             return remove(((Integer) key).intValue());
@@ -441,6 +448,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
     /**
      * Removes all of the mappings from this map. The map will be empty after this call returns.
      */
+    @Override
     public void clear() {
         ++this.modCount;
         this.size = 0;
@@ -460,6 +468,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *            value whose presence in this map is to be tested
      * @return <tt>true</tt> if this map maps one or more keys to the specified value
      */
+    @Override
     public boolean containsValue(final Object value) {
         if (this.list != null) {
         	if (value == null) {
@@ -505,14 +514,17 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
         	return new Entry[length];
 		}
 
-		public final Integer getKey() {
+		@Override
+        public final Integer getKey() {
             return this.key;
         }
 
+        @Override
         public final V getValue() {
             return this.value;
         }
 
+        @Override
         public final V setValue(final V newValue) {
             final V oldValue = this.value;
             this.value = newValue;
@@ -622,6 +634,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             }
         }
 
+        @Override
         public Entry<V> next() {
             if (IntegerMap.this.modCount != this.expectedModCount)
                 throw new ConcurrentModificationException();
@@ -638,10 +651,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return e;
         }
 
+        @Override
         public final boolean hasNext() {
             return this.next != null;
         }
 
+        @Override
         public void remove() {
             if (this.current == null)
                 throw new IllegalStateException();
@@ -663,6 +678,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * <tt>Iterator.remove</tt>, <tt>Set.remove</tt>, <tt>removeAll</tt>, <tt>retainAll</tt>, and
      * <tt>clear</tt> operations. It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
      */
+    @Override
     public Set<Integer> keySet() {
         return new AbstractSet<Integer>() {
             @Override
@@ -683,12 +699,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                             return next;
                         }
 
+                        @Override
                         public boolean hasNext() {
                             if (this.expectedModCount != IntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             return this.nextCursor < IntegerMap.this.list.length;
                         }
 
+                        @Override
                         public Integer next() {
                             if (!hasNext()) // throws ConcurrentModificationException
                                 throw new NoSuchElementException();
@@ -697,6 +715,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                             return this.lastKey + IntegerMap.this.listOffset;
                         }
 
+                        @Override
                         public void remove() {
                             if (this.expectedModCount != IntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
@@ -712,14 +731,17 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                 return new Iterator<Integer>() {
                     private final Iterator<Map.Entry<Integer, V>> i = new MapIterator();
 
+                    @Override
                     public boolean hasNext() {
                         return this.i.hasNext();
                     }
 
+                    @Override
                     public Integer next() {
                         return this.i.next().getKey();
                     }
 
+                    @Override
                     public void remove() {
                         this.i.remove();
                     }
@@ -747,6 +769,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      * <tt>retainAll</tt> and <tt>clear</tt> operations. It does not support the <tt>add</tt> or <tt>addAll</tt>
      * operations.
      */
+    @Override
     public Collection<V> values() {
         return new AbstractCollection<V>() {
             @Override
@@ -767,12 +790,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                             return next;
                         }
 
+                        @Override
                         public boolean hasNext() {
                             if (this.expectedModCount != IntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
                             return this.nextCursor < IntegerMap.this.list.length;
                         }
 
+                        @Override
                         @SuppressWarnings("synthetic-access")
 						public V next() {
                             if (!hasNext()) // throws ConcurrentModificationException
@@ -783,6 +808,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 							return val == getNullValue() ? null : val;
                         }
 
+                        @Override
                         public void remove() {
                             if (this.expectedModCount != IntegerMap.this.modCount)
                                 throw new ConcurrentModificationException();
@@ -798,14 +824,17 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                 return new Iterator<V>() {
                     private final Iterator<Map.Entry<Integer, V>> i = new MapIterator();
 
+                    @Override
                     public boolean hasNext() {
                         return this.i.hasNext();
                     }
 
+                    @Override
                     public V next() {
                         return this.i.next().getValue();
                     }
 
+                    @Override
                     public void remove() {
                         this.i.remove();
                     }
@@ -835,12 +864,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
      *
      * @return a set view of the mappings contained in this map
      */
+    @Override
     public Set<Map.Entry<Integer, V>> entrySet() {
         return new EntrySet();
     }
 
     final class EntrySet implements Set<Map.Entry<Integer, V>> {
 
+        @Override
         public Iterator<Map.Entry<Integer, V>> iterator() {
             if (IntegerMap.this.list != null) {
                 return new Iterator<Map.Entry<Integer, V>>() {
@@ -858,12 +889,14 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
                         return next;
                     }
 
+                    @Override
                     public boolean hasNext() {
                         if (this.expectedModCount != IntegerMap.this.modCount)
                             throw new ConcurrentModificationException();
                         return this.nextCursor < IntegerMap.this.list.length;
                     }
 
+                    @Override
                     @SuppressWarnings("synthetic-access")
 					public Entry<V> next() {
                         if (!hasNext()) // throws ConcurrentModificationException
@@ -874,6 +907,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
 						return new Entry<V>(this.lastKey + IntegerMap.this.listOffset, val == getNullValue() ? null : val, null);
                     }
 
+                    @Override
                     public void remove() {
                         if (this.expectedModCount != IntegerMap.this.modCount)
                             throw new ConcurrentModificationException();
@@ -889,6 +923,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return new MapIterator();
         }
 
+        @Override
         public boolean contains(final Object o) {
             if (!(o instanceof Entry<?>))
                 return false;
@@ -897,6 +932,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return val == null ? e.getValue() == null : val.equals(e.getValue());
         }
 
+        @Override
         public boolean remove(final Object o) {
             if (o instanceof Entry<?>) {
             	Entry<?> e = (Entry<?>) o;
@@ -908,22 +944,27 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return false;
         }
 
+        @Override
         public int size() {
             return IntegerMap.this.size;
         }
 
+        @Override
         public void clear() {
             IntegerMap.this.clear();
         }
 
+        @Override
         public boolean add(final java.util.Map.Entry<Integer, V> e) {
             throw new UnsupportedOperationException();
         }
 
+        @Override
         public boolean addAll(final Collection<? extends Map.Entry<Integer, V>> c) {
             throw new UnsupportedOperationException();
         }
 
+        @Override
         public boolean containsAll(final Collection<?> c) {
             for (final Object o : c)
                 if (!contains(o))
@@ -931,10 +972,12 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return true;
         }
 
+        @Override
         public boolean isEmpty() {
             return IntegerMap.this.isEmpty();
         }
 
+        @Override
         public boolean removeAll(final Collection<?> c) {
             boolean changed = false;
             for (final Object o : c)
@@ -943,6 +986,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return changed;
         }
 
+        @Override
         public boolean retainAll(final Collection<?> c) {
             final Iterator<Map.Entry<Integer, V>> e = iterator();
             boolean changed = false;
@@ -954,6 +998,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return changed;
         }
 
+        @Override
         public Object[] toArray() {
             final Object[] r = new Object[size()];
             final Iterator<Map.Entry<Integer, V>> it = iterator();
@@ -968,6 +1013,7 @@ public class IntegerMap<V> implements Map<Integer, V>, Cloneable {
             return it.hasNext() ? finishToArray(r, it) : r;
         }
 
+        @Override
         @SuppressWarnings("unchecked")
         public <T> T[] toArray(final T[] a) {
             final T[] r = a.length >= size() ? a : (T[]) java.lang.reflect.Array.newInstance(a.getClass()
