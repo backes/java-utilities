@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
@@ -726,6 +728,7 @@ public class MultiplexedFileWriter {
                 65535, .75f, 16, ReferenceType.WEAK, ReferenceType.STRONG,
                 EnumSet.of(Option.IDENTITY_COMPARISONS));
             openStreamsTmp.addRemoveStaleListener(new RemoveStaleListener<InnerOutputStream>() {
+                @Override
                 public void removed(final InnerOutputStream removedValue) {
                     try {
                         removedValue.close();
@@ -1014,14 +1017,17 @@ public class MultiplexedFileWriter {
                             throw e;
                     }
                 }
+                // try to explicitely unmap the buffer (might or might not be successful)
+                tryUnmap();
                 this.fileMappings = null;
             }
 
             // and (possibly) truncate the file
             // WARNING: this is a really bad hack!
             // there is a severe bug (4724038) in jdk that files whose content is still mapped
-            // cannot be truncated, but there is no way to unmap file content.
-            // so we have to rely on the garbage collector to remove the mappings...
+            // cannot be truncated, but there is no standard way to unmap file content.
+            // if the explicit unmapping above fails, then this loop allocates more and more
+            // memory to force the garbage collector to eventually release the memory mappings.
             LinkedList<byte[]> memoryConsumingList = new LinkedList<byte[]>();
             while (true) {
                 try {
@@ -1037,6 +1043,7 @@ public class MultiplexedFileWriter {
                     memoryConsumingList.add(new byte[1024]); // consumes 1 kB
                 }
             }
+            memoryConsumingList.clear();
             memoryConsumingList = null;
 
             // write some meta information to the file to make it valid
@@ -1201,7 +1208,8 @@ public class MultiplexedFileWriter {
         }
     }
 
-    protected void flush0(final MappedByteBuffer omit) throws IOException {
+    /* package-visible */
+    void flush0(final MappedByteBuffer omit) throws IOException {
         if (this.useMemoryMapping) {
             MappedByteBuffer[] buffers;
             synchronized (this.fileMappingsLock) {
@@ -1218,4 +1226,39 @@ public class MultiplexedFileWriter {
         }
     }
 
+    // try to unmap all memory mappings
+    private void tryUnmap() {
+        synchronized (this.fileMappingsLock) {
+            for (MappedByteBuffer buf : this.fileMappings) {
+                if (buf == null)
+                    continue;
+                // need to dispose old direct buffer, see bug
+                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4724038
+                try {
+                    Method cleanerMethod = buf.getClass().getMethod("cleaner", new Class[0]);
+                    if (cleanerMethod == null)
+                        continue;
+                    cleanerMethod.setAccessible(true);
+                    Object cleaner = cleanerMethod.invoke(buf);
+                    if (cleaner == null)
+                        continue;
+                    Method cleanMethod = cleaner.getClass().getMethod("clean", new Class[0]);
+                    if (cleanMethod == null)
+                        continue;
+                    cleanMethod.setAccessible(true);
+                    cleanMethod.invoke(cleaner);
+                } catch (NoSuchMethodException e1) {
+                    continue;
+                } catch (SecurityException e1) {
+                    continue;
+                } catch (IllegalAccessException e) {
+                    continue;
+                } catch (IllegalArgumentException e) {
+                    continue;
+                } catch (InvocationTargetException e) {
+                    continue;
+                }
+            }
+        }
+    }
 }
